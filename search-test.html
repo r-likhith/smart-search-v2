@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Search v2 — Test UI</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --accent: #c8ff00;
+      --accent-dim: rgba(200,255,0,0.08);
+      --text: #f0f0f0;
+      --muted: #555;
+      --tag-manual: #00c8ff;
+      --tag-ollama: #ff6b35;
+      --tag-click: #c8ff00;
+      --tag-fallback: #ff4466;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .header h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .header h1 span {
+      color: var(--accent);
+    }
+
+    .header p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── SEARCH BOX ── */
+    .search-wrap {
+      max-width: 720px;
+      margin: 0 auto 40px;
+      position: relative;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    #searchInput {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-size: 1.1rem;
+      font-family: 'Syne', sans-serif;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #searchInput:focus {
+      border-color: var(--accent);
+    }
+
+    #searchInput::placeholder { color: var(--muted); }
+
+    #searchBtn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 16px 28px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    #searchBtn:hover { opacity: 0.85; }
+    #searchBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* suggestions dropdown */
+    #suggestions {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 80px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 100;
+      display: none;
+    }
+
+    .sug-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+
+    .sug-item:hover { background: var(--accent-dim); }
+
+    .sug-cat { color: var(--muted); font-size: 0.75rem; font-family: 'DM Mono', monospace; }
+
+    /* ── CORRECTION BANNER ── */
+    #correctionBanner {
+      max-width: 720px;
+      margin: 0 auto 20px;
+      display: none;
+    }
+
+    .banner {
+      background: var(--accent-dim);
+      border: 1px solid rgba(200,255,0,0.2);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .banner .orig { color: var(--muted); text-decoration: line-through; font-family: 'DM Mono', monospace; }
+    .banner .corrected { color: var(--accent); font-weight: 600; font-family: 'DM Mono', monospace; }
+    .banner .src-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .src-manual { background: rgba(0,200,255,0.15); color: var(--tag-manual); }
+    .src-ollama { background: rgba(255,107,53,0.15); color: var(--tag-ollama); }
+    .src-click  { background: rgba(200,255,0,0.15);  color: var(--tag-click);  }
+
+    /* ── META ROW ── */
+    #metaRow {
+      max-width: 720px;
+      margin: 0 auto 24px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .meta-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 10px;
+    }
+
+    .fallback-warn {
+      color: var(--tag-fallback);
+      font-size: 0.75rem;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── RESULTS GRID ── */
+    #results {
+      max-width: 720px;
+      margin: 0 auto;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      animation: fadeUp 0.2s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card:hover {
+      border-color: #333;
+      background: #161616;
+    }
+
+    .result-card.clicked {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .result-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+
+    .result-name em {
+      color: var(--accent);
+      font-style: normal;
+    }
+
+    .result-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #1a1a1a;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .result-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── LOG PANEL ── */
+    #logPanel {
+      max-width: 720px;
+      margin: 40px auto 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .log-header {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .log-clear {
+      cursor: pointer;
+      color: var(--muted);
+      background: none;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    .log-clear:hover { color: var(--text); }
+
+    #logEntries {
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .log-entry {
+      padding: 4px 16px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .log-time { color: var(--muted); flex-shrink: 0; }
+    .log-type { flex-shrink: 0; width: 60px; }
+    .log-search { color: #888; }
+    .log-correction { color: var(--accent); }
+    .log-ollama { color: var(--tag-ollama); }
+    .log-click { color: var(--tag-click); }
+    .log-error { color: var(--tag-fallback); }
+    .log-msg { color: #aaa; }
+
+    /* ── LOADING ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid #333;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading {
+      max-width: 720px;
+      margin: 0 auto;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* ── CONFIG ── */
+    .config-row {
+      max-width: 720px;
+      margin: 0 auto 16px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .config-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .config-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--text);
+      width: 200px;
+      outline: none;
+    }
+
+    .config-input:focus { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Smart <span>Search</span> v2</h1>
+    <p>TEST INTERFACE — localhost:3000</p>
+  </div>
+
+  <!-- Config -->
+  <div class="config-row">
+    <span class="config-label">API KEY</span>
+    <input class="config-input" id="apiKey" value="searchapikey123" placeholder="x-api-key">
+    <span class="config-label">HOST</span>
+    <input class="config-input" id="apiHost" value="http://localhost:3000" placeholder="host">
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-row">
+      <input id="searchInput" type="text" placeholder="Search anything… try 'kurtta', 'ear ringzz', 'fridgee'" autocomplete="off">
+      <button id="searchBtn">Search</button>
+    </div>
+    <div id="suggestions"></div>
+  </div>
+
+  <!-- Correction banner -->
+  <div id="correctionBanner"></div>
+
+  <!-- Meta -->
+  <div id="metaRow"></div>
+
+  <!-- Loading -->
+  <div id="loading"><div class="spinner"></div> searching…</div>
+
+  <!-- Results -->
+  <div id="results"></div>
+
+  <!-- Log -->
+  <div id="logPanel">
+    <div class="log-header">
+      <span>ACTIVITY LOG</span>
+      <button class="log-clear" onclick="clearLog()">clear</button>
+    </div>
+    <div id="logEntries"></div>
+  </div>
+
+<script>
+  const API_KEY = () => document.getElementById('apiKey').value;
+  const API_HOST = () => document.getElementById('apiHost').value;
+
+  let suggestTimer = null;
+  let lastQuery = '';
+
+  // ── LOG ──────────────────────────────────────────────────
+
+  function addLog(type, msg) {
+    const el = document.getElementById('logEntries');
+    const now = new Date().toLocaleTimeString('en', { hour12: false });
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+      <span class="log-time">${now}</span>
+      <span class="log-type log-${type}">${type.toUpperCase()}</span>
+      <span class="log-msg">${msg}</span>
+    `;
+    el.appendChild(entry);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('logEntries').innerHTML = '';
+  }
+
+  // ── SUGGEST ──────────────────────────────────────────────
+
+  const input = document.getElementById('searchInput');
+  const sugDiv = document.getElementById('suggestions');
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clearTimeout(suggestTimer);
+    if (q.length < 2) { sugDiv.style.display = 'none'; return; }
+    suggestTimer = setTimeout(() => fetchSuggestions(q), 200);
+  });
+
+  async function fetchSuggestions(q) {
+    try {
+      const res = await fetch(`${API_HOST()}/api/suggest?q=${encodeURIComponent(q)}&clientId=198`, {
+        headers: { 'x-api-key': API_KEY() }
+      });
+      const json = await res.json();
+      const data = json.data;
+      if (!data) return;
+
+      const items = [];
+
+      // categories first
+      (data.suggestions?.categories || []).slice(0, 2).forEach(c => {
+        items.push(`<div class="sug-item" onclick="selectSuggestion('${c.name}')">
+          <span>📁</span>
+          <span>${c.name}</span>
+          <span class="sug-cat">${c.path}</span>
+        </div>`);
+      });
+
+      // products
+      (data.suggestions?.products || []).slice(0, 4).forEach(p => {
+        items.push(`<div class="sug-item" onclick="selectSuggestion('${p.name.replace(/'/g,"\\'")}')">
+          <span>🛍</span>
+          <span>${p.name}</span>
+          <span class="sug-cat">${p.subcategory || p.category}</span>
+        </div>`);
+      });
+
+      if (items.length === 0) { sugDiv.style.display = 'none'; return; }
+
+      sugDiv.innerHTML = items.join('');
+      sugDiv.style.display = 'block';
+
+      if (data.wasCorrected) {
+        addLog('correction', `suggest: "${q}" → "${data.correctedQuery}" [${data.correctionSource}]`);
+      }
+
+    } catch (e) {
+      // silent fail on suggest
+    }
+  }
+
+  function selectSuggestion(val) {
+    input.value = val;
+    sugDiv.style.display = 'none';
+    doSearch();
+  }
+
+  // hide suggestions on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrap')) sugDiv.style.display = 'none';
+  });
+
+  // ── SEARCH ───────────────────────────────────────────────
+
+  document.getElementById('searchBtn').addEventListener('click', doSearch);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+  async function doSearch() {
+    const q = input.value.trim();
+    if (!q) return;
+    sugDiv.style.display = 'none';
+    lastQuery = q;
+
+    // ui state
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('correctionBanner').style.display = 'none';
+    document.getElementById('metaRow').style.display = 'none';
+    document.getElementById('searchBtn').disabled = true;
+
+    addLog('search', `"${q}"`);
+
+    try {
+      const res = await fetch(`${API_HOST()}/api/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY()
+        },
+        body: JSON.stringify({ query: q, limit: 20 })
+      });
+
+      const json = await res.json();
+      const data = json.data;
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('searchBtn').disabled = false;
+
+      if (!data) { addLog('error', 'no data returned'); return; }
+
+      renderCorrection(data, q);
+      renderMeta(data);
+      renderResults(data, q);
+
+    } catch (e) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('searchBtn').disabled = false;
+      addLog('error', e.message);
+    }
+  }
+
+  // ── RENDER CORRECTION ────────────────────────────────────
+
+  function renderCorrection(data, q) {
+    const banner = document.getElementById('correctionBanner');
+    const c = data.correction;
+
+    if (!c?.applied) { banner.style.display = 'none'; return; }
+
+    const srcClass = `src-${c.source || 'manual'}`;
+    const conf = c.confidence ? `${Math.round(c.confidence * 100)}%` : '';
+
+    banner.innerHTML = `<div class="banner">
+      <span>Showing results for</span>
+      <span class="corrected">${c.showingResultsFor}</span>
+      <span>instead of</span>
+      <span class="orig">${c.searchInsteadFor}</span>
+      <span class="src-tag ${srcClass}">${c.source} ${conf}</span>
+    </div>`;
+    banner.style.display = 'block';
+
+    addLog('correction', `"${c.searchInsteadFor}" → "${c.showingResultsFor}" [${c.source}] conf:${conf}`);
+
+    if (c.source === 'ollama') {
+      addLog('ollama', `AI corrected "${c.searchInsteadFor}" → "${c.showingResultsFor}"`);
+    }
+  }
+
+  // ── RENDER META ──────────────────────────────────────────
+
+  function renderMeta(data) {
+    const meta = document.getElementById('metaRow');
+    const m = data.meta;
+
+    meta.innerHTML = `
+      <span class="meta-pill">${m.totalHits?.toLocaleString() || 0} results</span>
+      <span class="meta-pill">${m.processingTime}ms</span>
+      ${m.isFallback ? `<span class="fallback-warn">⚠ fallback — ${m.fallbackReason}</span>` : ''}
+    `;
+    meta.style.display = 'flex';
+  }
+
+  // ── RENDER RESULTS ───────────────────────────────────────
+
+  function renderResults(data, q) {
+    const container = document.getElementById('results');
+    const hits = data.results || [];
+
+    if (hits.length === 0) {
+      container.innerHTML = `<div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.8rem;text-align:center;padding:40px">no results found</div>`;
+      container.style.display = 'flex';
+      return;
+    }
+
+    container.innerHTML = hits.map((h, i) => `
+      <div class="result-card" style="animation-delay:${i * 0.02}s"
+           onclick="recordClick('${h.id}', '${h.name?.replace(/'/g,"\\'")}', '${h.category}', '${h.subcategory || ''}', this)">
+        <div class="result-name">${h.highlight?.name || h.name}</div>
+        <div class="result-meta">
+          <span class="tag">${h.category}</span>
+          ${h.subcategory ? `<span class="tag">${h.subcategory}</span>` : ''}
+          ${h.brand ? `<span class="tag">${h.brand}</span>` : ''}
+          ${h.price > 0 ? `<span class="tag">₹${h.price}</span>` : ''}
+        </div>
+        <div class="result-desc">${h.description || ''}</div>
+      </div>
+    `).join('');
+
+    container.style.display = 'flex';
+  }
+
+  // ── RECORD CLICK ─────────────────────────────────────────
+
+  async function recordClick(productId, productName, category, subcategory, el) {
+    // visual feedback
+    document.querySelectorAll('.result-card.clicked').forEach(c => c.classList.remove('clicked'));
+    el.classList.add('clicked');
+
+    addLog('click', `"${productName}" [${subcategory || category}]`);
+
+    try {
+      await fetch(`${API_HOST()}/api/behaviour/click`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY()
+        },
+        body: JSON.stringify({
+          query: lastQuery,
+          productId,
+          productName,
+          category,
+          subcategory
+        })
+      });
+    } catch (e) {
+      addLog('error', `click failed: ${e.message}`);
+    }
+  }
+
+  // ── INIT ─────────────────────────────────────────────────
+
+  addLog('search', 'Test UI ready — connected to localhost:3000');
+</script>
+</body>
+</html>
+

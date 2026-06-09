@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# environment — never commit real values ✅
+.env
+
+# Meilisearch data
+data.ms/
+dumps/
+
+# logs — generated at runtime ✅
+logs/
+multiTenantLogs/
+
+# OS
+.DS_Store
+
+# Excel/CSV exports
+*.xlsx
+*.csv
+
+# old fix scripts (keep folder, ignore contents in git if needed)
+# remove this line if you want oldFixFiles tracked ✅
+# oldFixFiles/
+oldFixFiles/

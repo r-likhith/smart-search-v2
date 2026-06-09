@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grocery Store 137 — Search</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; }
+header { background: #2e7d32; color: #fff; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+header h1 { font-size: 18px; font-weight: 500; }
+header p { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+.isolation-tag { background: rgba(255,255,255,0.15); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+.search-section { background: #fff; padding: 20px 32px; border-bottom: 0.5px solid #e0e0e0; }
+.search-row { display: flex; gap: 10px; }
+.search-wrap { position: relative; flex: 1; }
+.search-wrap input { width: 100%; padding: 10px 16px; border: 0.5px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; }
+.search-wrap input:focus { border-color: #2e7d32; }
+.search-section button { background: #2e7d32; color: #fff; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.search-section button:hover { background: #1b5e20; }
+.suggestions { position: absolute; background: #fff; border: 0.5px solid #ddd; border-radius: 8px; top: calc(100% + 4px); left: 0; right: 0; z-index: 100; max-height: 280px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.sug-item { padding: 10px 16px; cursor: pointer; font-size: 14px; border-bottom: 0.5px solid #f5f5f5; display: flex; align-items: center; justify-content: space-between; }
+.sug-item:hover { background: #e6f4ea; }
+.sug-item:last-child { border-bottom: none; }
+.sug-name { color: #1a1a1a; }
+.sug-meta { display: flex; align-items: center; gap: 8px; }
+.sug-price { color: #2e7d32; font-weight: 500; font-size: 13px; }
+.sug-cat { font-size: 11px; background: #e6f4ea; color: #2e7d32; padding: 2px 6px; border-radius: 4px; }
+main { max-width: 1000px; margin: 0 auto; padding: 24px; }
+.meta-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 13px; color: #666; }
+.meta-left { display: flex; align-items: center; gap: 12px; }
+.correction-bar { padding: 10px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.correction-full     { background: #e6f4ea; color: #2e7d32; }
+.correction-assisted { background: #f5f5f5; color: #666; }
+.fallback-bar { background: #fff8e1; color: #7b5e00; padding: 10px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.card { background: #fff; border: 0.5px solid #e8e8e8; border-radius: 10px; padding: 16px; cursor: pointer; transition: border-color 0.15s; }
+.card:hover { border-color: #2e7d32; }
+.card-name { font-size: 13px; font-weight: 500; line-height: 1.4; margin-bottom: 8px; color: #1a1a1a; }
+.card-brand { font-size: 12px; color: #888; margin-bottom: 10px; }
+.card-size { font-size: 11px; color: #aaa; margin-bottom: 8px; }
+.card-bottom { display: flex; align-items: center; justify-content: space-between; }
+.card-price { font-size: 16px; font-weight: 500; color: #2e7d32; }
+.card-cat { font-size: 11px; background: #e6f4ea; color: #2e7d32; padding: 3px 8px; border-radius: 20px; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.click-feedback { position: fixed; bottom: 24px; right: 24px; background: #2e7d32; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; }
+.click-feedback.show { opacity: 1; }
+.empty { text-align: center; padding: 80px 20px; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty h3 { font-size: 16px; font-weight: 500; color: #555; margin-bottom: 8px; }
+.empty p { font-size: 13px; color: #999; }
+.loading { text-align: center; padding: 60px; color: #999; font-size: 14px; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid #e0e0e0; border-top-color: #2e7d32; border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.timing { color: #2e7d32; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🛒 Grocery Store 137</h1>
+    <p>Client ID: 137 &nbsp;·&nbsp; Grocery &nbsp;·&nbsp; 5,028 products</p>
+  </div>
+  <span class="isolation-tag">Isolated index ✓</span>
+</header>
+
+<div class="search-section">
+  <div class="search-row">
+    <div class="search-wrap">
+      <input type="text" id="q" placeholder="Search rice, beverages, dairy, packaged food..." autocomplete="off" />
+      <div class="suggestions" id="suggestions" style="display:none"></div>
+    </div>
+    <button onclick="doSearch()">Search</button>
+  </div>
+</div>
+
+<main>
+  <div id="correction" class="correction-bar" style="display:none"></div>
+  <div id="fallback"   class="fallback-bar"   style="display:none"></div>
+
+  <div class="meta-bar" id="meta" style="display:none">
+    <div class="meta-left">
+      <span id="meta-hits"></span>
+      <span class="timing" id="meta-time"></span>
+    </div>
+    <span style="font-size:11px;background:#e6f4ea;color:#2e7d32;padding:3px 10px;border-radius:20px;">
+      client_137_products only
+    </span>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<div class="click-feedback" id="click-feedback">✓ Click recorded</div>
+
+<script>
+const CLIENT_ID = '137';
+const API       = 'http://localhost:3000';
+const API_KEY   = 'searchapikey123';
+
+const qEl    = document.getElementById('q');
+const sugsEl = document.getElementById('suggestions');
+let sugTimer      = null;
+let lastQuery     = '';
+let feedbackTimer = null;
+
+qEl.addEventListener('input', () => {
+  clearTimeout(sugTimer);
+  const q = qEl.value.trim();
+  if (q.length < 2) { sugsEl.style.display = 'none'; return; }
+  sugTimer = setTimeout(() => loadSuggestions(q), 220);
+});
+
+qEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { sugsEl.style.display = 'none'; doSearch(); }
+  if (e.key === 'Escape') { sugsEl.style.display = 'none'; }
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) sugsEl.style.display = 'none';
+});
+
+async function loadSuggestions(q) {
+  try {
+    const r = await fetch(
+      API + '/api/suggest?q=' + encodeURIComponent(q) + '&clientId=' + CLIENT_ID,
+      { headers: { 'x-api-key': API_KEY } }
+    );
+    const data = await r.json();
+    const products = data.data && data.data.suggestions && data.data.suggestions.products || [];
+    if (!products.length) { sugsEl.style.display = 'none'; return; }
+    sugsEl.innerHTML = products.slice(0, 6).map(function(p) {
+      return '<div class="sug-item" onclick="pickSuggestion(' + JSON.stringify(p.name) + ')">' +
+        '<span class="sug-name">' + (p.nameHighlighted || p.name) + '</span>' +
+        '<span class="sug-meta">' +
+          (p.category ? '<span class="sug-cat">' + p.category + '</span>' : '') +
+          '<span class="sug-price">\u20B9' + (p.price || 0).toLocaleString() + '</span>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+    sugsEl.style.display = 'block';
+  } catch(e) {
+    sugsEl.style.display = 'none';
+  }
+}
+
+function pickSuggestion(name) {
+  qEl.value = name;
+  sugsEl.style.display = 'none';
+  doSearch();
+}
+
+async function doSearch() {
+  const q = qEl.value.trim();
+  if (!q) return;
+  lastQuery = q;
+
+  document.getElementById('results').innerHTML =
+    '<div class="loading"><span class="spinner"></span>Searching...</div>';
+  document.getElementById('correction').style.display = 'none';
+  document.getElementById('fallback').style.display   = 'none';
+  document.getElementById('meta').style.display       = 'none';
+
+  try {
+    const r = await fetch(API + '/api/search', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body:    JSON.stringify({ query: q, clientId: CLIENT_ID })
+    });
+    const data = await r.json();
+    renderResults(data.data);
+  } catch(e) {
+    document.getElementById('results').innerHTML =
+      '<div class="empty"><div class="empty-icon">⚠️</div>' +
+      '<h3>Connection error</h3><p>Make sure the server is running on port 3000</p></div>';
+  }
+}
+
+function renderResults(data) {
+  if (!data) return;
+
+  var correctedQuery = data.correctedQuery;
+  var displayQuery   = data.displayQuery;
+  var wasCorrected   = data.wasCorrected;
+  var corrMode       = data.correctionMode || 'none';
+
+  if (wasCorrected && correctedQuery) {
+    if (displayQuery) qEl.value = displayQuery;
+    var el = document.getElementById('correction');
+    el.className = 'correction-bar ' + (corrMode === 'full' ? 'correction-full' : 'correction-assisted');
+    var original = data.normalisedQuery || lastQuery;
+    if (corrMode === 'full') {
+      el.innerHTML = '\u270F\uFE0F Showing results for <strong>"' + correctedQuery + '"</strong>' +
+        ' &nbsp;&middot;&nbsp; <span style="opacity:0.6">searched: <span style="text-decoration:line-through">' +
+        original + '</span></span>' +
+        ' &nbsp;&middot;&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="searchInstead(' +
+        JSON.stringify(original) + ')">search instead</span>';
+    } else {
+      el.innerHTML = '\u270F\uFE0F Also showing results for <strong>"' + correctedQuery + '"</strong>';
+    }
+    el.style.display = 'flex';
+  }
+
+  if (data.isFallback) {
+    var fb = document.getElementById('fallback');
+    fb.textContent = '\u26A1 No exact results found — showing popular products from this store';
+    fb.style.display = 'block';
+  }
+
+  document.getElementById('meta-hits').textContent =
+    (data.totalHits || 0).toLocaleString() + ' results';
+  document.getElementById('meta-time').textContent =
+    (data.processingTime || 0) + 'ms';
+  document.getElementById('meta').style.display = 'flex';
+
+  var results = data.results || [];
+
+  if (!results.length) {
+    document.getElementById('results').innerHTML =
+      '<div class="empty"><div class="empty-icon">\uD83D\uDD0D</div>' +
+      '<h3>No products found</h3><p>Try searching: rice, basmati, milk, beverages</p></div>';
+    return;
+  }
+
+  document.getElementById('results').innerHTML =
+    '<div class="grid">' +
+    results.map(function(p) {
+      return '<div class="card" onclick="recordClick(' +
+        JSON.stringify(p.id) + ',' +
+        JSON.stringify(p.name || '') + ',' +
+        JSON.stringify(p.category || '') + ')">' +
+        '<div class="card-name">' + p.name + '</div>' +
+        '<div class="card-brand">' + (p.brand || '—') + '</div>' +
+        (p.size ? '<div class="card-size">' + p.size + '</div>' : '') +
+        '<div class="card-bottom">' +
+          '<span class="card-price">\u20B9' + (p.price || 0).toLocaleString() + '</span>' +
+          (p.category ? '<span class="card-cat">' + p.category + '</span>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('') +
+    '</div>';
+}
+
+function searchInstead(original) {
+  qEl.value = original;
+  lastQuery = original;
+  doSearch();
+}
+
+async function recordClick(productId, productName, category) {
+  var fb = document.getElementById('click-feedback');
+  fb.classList.add('show');
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(function() { fb.classList.remove('show'); }, 1500);
+
+  try {
+    await fetch(API + '/api/behaviour/click', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      body:    JSON.stringify({
+        query:       lastQuery,
+        productId:   productId,
+        productName: productName,
+        category:    category,
+        clientId:    CLIENT_ID
+      })
+    });
+  } catch(e) {}
+}
+</script>
+</body>
+</html>

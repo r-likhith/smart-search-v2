@@ -1,0 +1,23 @@
+{
+  "clientId": "137",
+  "lastSeqNo": 264420,
+  "lastPrimaryTerm": 1109,
+  "lastSync": "2026-05-27T06:47:55.163Z",
+  "isRunning": false,
+  "syncStartedAt": null,
+  "heartbeat": null,
+  "productCount": 5028,
+  "currentIntervalMs": 300000,
+  "consecutiveFailures": 0,
+  "isPaused": false,
+  "pausedUntil": null,
+  "lastChangeCount": 5459,
+  "lastSyncDurationMs": 64984,
+  "totalSyncs": 1,
+  "totalUpserted": 5028,
+  "totalDeleted": 431,
+  "lastError": null,
+  "totalRetries": 0,
+  "successfulSyncs": 1,
+  "updatedAt": "2026-05-27T06:49:00.148Z"
+}

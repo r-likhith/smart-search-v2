@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Search v2 — Analytics</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #161616;
+      --border: #1e1e1e;
+      --accent: #c8ff00;
+      --accent-dim: rgba(200,255,0,0.08);
+      --text: #f0f0f0;
+      --muted: #555;
+      --symspell: #00c8ff;
+      --ollama: #ff6b35;
+      --learnedmap: #c8ff00;
+      --phonetic: #f472b6;
+      --meilisearch: #a855f7;
+      --fallback: #ff4466;
+      --good: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; min-height:100vh; padding:32px 24px; }
+
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:12px; }
+    .header h1 { font-size:1.8rem; font-weight:800; letter-spacing:-0.03em; }
+    .header h1 span { color:var(--accent); }
+    .header-right { display:flex; align-items:center; gap:12px; }
+    .period { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); }
+
+    .refresh-btn { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:6px 14px; font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--text); cursor:pointer; transition:border-color 0.2s; }
+    .refresh-btn:hover { border-color:var(--accent); }
+
+    .replay-bar { display:flex; gap:8px; margin-bottom:24px; }
+    .replay-input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 14px; font-family:'DM Mono',monospace; font-size:0.8rem; color:var(--text); outline:none; transition:border-color 0.2s; }
+    .replay-input:focus { border-color:var(--accent); }
+    .replay-input::placeholder { color:var(--muted); }
+    .replay-btn { background:var(--accent); border:none; border-radius:6px; padding:8px 18px; font-family:'DM Mono',monospace; font-size:0.8rem; color:#000; cursor:pointer; font-weight:700; transition:opacity 0.2s; }
+    .replay-btn:hover { opacity:0.85; }
+
+    .grid { display:grid; gap:16px; }
+    .grid-5 { grid-template-columns:repeat(5,1fr); }
+    .grid-4 { grid-template-columns:repeat(4,1fr); }
+    .grid-3 { grid-template-columns:repeat(3,1fr); }
+    .grid-2 { grid-template-columns:repeat(2,1fr); }
+
+    @media(max-width:1100px) { .grid-5 { grid-template-columns:repeat(3,1fr); } }
+    @media(max-width:900px) { .grid-5,.grid-4 { grid-template-columns:repeat(2,1fr); } .grid-3 { grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:600px) { .grid-5,.grid-4,.grid-3,.grid-2 { grid-template-columns:1fr; } }
+
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; }
+    .card-title { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px; }
+
+    .stat-value { font-size:2rem; font-weight:800; line-height:1; margin-bottom:4px; }
+    .stat-sub { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); }
+    .stat-value.accent { color:var(--accent); }
+    .stat-value.good { color:var(--good); }
+    .stat-value.warn { color:var(--warn); }
+    .stat-value.danger { color:var(--fallback); }
+    .stat-value.phonetic { color:var(--phonetic); }
+
+    .bar-list { display:flex; flex-direction:column; gap:8px; }
+    .bar-item { display:flex; align-items:center; gap:10px; }
+    .bar-label { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--text); width:100px; flex-shrink:0; }
+    .bar-track { flex:1; height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
+    .bar-count { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); width:50px; text-align:right; flex-shrink:0; }
+
+    .fill-meilisearch { background:var(--meilisearch); }
+    .fill-learnedmap { background:var(--learnedmap); }
+    .fill-symspell { background:var(--symspell); }
+    .fill-phonetic { background:var(--phonetic); }
+    .fill-ollama { background:var(--ollama); }
+    .fill-fallback { background:var(--fallback); }
+    .fill-accent { background:var(--accent); }
+    .fill-good { background:var(--good); }
+    .fill-warn { background:var(--warn); }
+    .fill-muted { background:var(--muted); }
+
+    .timing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+    .timing-cell { background:var(--surface2); border-radius:6px; padding:12px; text-align:center; }
+    .timing-label { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); margin-bottom:4px; }
+    .timing-value { font-size:1.2rem; font-weight:700; }
+    .timing-unit { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); }
+
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-family:'DM Mono',monospace; font-size:0.72rem; }
+    th { text-align:left; padding:8px 10px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:500; }
+    td { padding:8px 10px; border-bottom:1px solid #1a1a1a; color:var(--text); }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--surface2); }
+    tr.clickable { cursor:pointer; }
+    tr.clickable:hover td { background:var(--accent-dim); }
+
+    .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-family:'DM Mono',monospace; font-size:0.65rem; font-weight:500; }
+    .badge-symspell { background:rgba(0,200,255,0.15); color:var(--symspell); }
+    .badge-ollama { background:rgba(255,107,53,0.15); color:var(--ollama); }
+    .badge-learnedmap,.badge-manual { background:rgba(200,255,0,0.15); color:var(--learnedmap); }
+    .badge-phonetic { background:rgba(244,114,182,0.15); color:var(--phonetic); }
+    .badge-meilisearch { background:rgba(168,85,247,0.15); color:var(--meilisearch); }
+    .badge-none { background:#1a1a1a; color:var(--muted); }
+    .badge-click { background:rgba(34,197,94,0.15); color:var(--good); }
+    .badge-groq { background:rgba(255,107,53,0.15); color:var(--ollama); }
+
+    .tag-list { display:flex; flex-wrap:wrap; gap:6px; }
+    .tag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 10px; font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); cursor:pointer; transition:border-color 0.2s; }
+    .tag:hover { border-color:var(--accent); color:var(--text); }
+    .tag.zero { border-color:rgba(255,68,102,0.3); color:var(--fallback); }
+    .tag.weak { border-color:rgba(245,158,11,0.3); color:var(--warn); }
+    .tag.risk { border-color:rgba(255,68,102,0.3); color:var(--fallback); }
+
+    .section-title { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin:28px 0 12px; }
+
+    .layer-card { display:flex; align-items:center; gap:16px; padding:16px; background:var(--surface2); border-radius:8px; margin-bottom:10px; }
+    .layer-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .layer-name { font-weight:600; font-size:0.9rem; flex:1; }
+    .layer-stat { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); text-align:right; }
+    .layer-rate { font-size:1.1rem; font-weight:700; font-family:'DM Mono',monospace; }
+
+    .lifecycle-row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-family:'DM Mono',monospace; font-size:0.75rem; }
+    .lifecycle-row:last-child { border-bottom:none; }
+    .lifecycle-label { color:var(--muted); }
+    .lifecycle-value { font-weight:700; }
+
+    .src-bar { height:3px; border-radius:2px; margin-top:4px; transition:width 0.6s ease; }
+
+    .empty { text-align:center; padding:60px 20px; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.8rem; }
+    .loading { text-align:center; padding:80px 20px; color:var(--muted); font-family:'DM Mono',monospace; font-size:0.8rem; }
+    .spinner { display:inline-block; width:20px; height:20px; border:2px solid #333; border-top-color:var(--accent); border-radius:50%; animation:spin 0.6s linear infinite; margin-bottom:12px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .depth-viz { display:flex; gap:8px; align-items:flex-end; height:80px; padding:0 4px; }
+    .depth-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
+    .depth-bar { width:100%; border-radius:4px 4px 0 0; min-height:4px; transition:height 0.6s ease; }
+    .depth-label { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); text-align:center; }
+    .depth-count { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--text); text-align:center; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:flex-start; justify-content:center; overflow-y:auto; padding:40px 20px; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:760px; margin:auto; }
+    .modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+    .modal-title { font-weight:700; font-size:1rem; }
+    .modal-close { background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer; padding:4px 8px; line-height:1; }
+    .modal-close:hover { color:var(--text); }
+    .modal-body { padding:20px; max-height:70vh; overflow-y:auto; }
+
+    .pipeline-step { display:flex; align-items:flex-start; gap:12px; padding:10px; background:var(--surface2); border-radius:6px; border-left:3px solid var(--border); margin-bottom:8px; }
+    .step-num { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); width:16px; flex-shrink:0; padding-top:2px; }
+    .step-body { flex:1; }
+    .step-header { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+    .step-name { font-weight:600; font-size:0.85rem; }
+    .step-status { font-family:'DM Mono',monospace; font-size:0.65rem; }
+    .step-time { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); margin-left:auto; }
+    .step-detail { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); }
+    .step-words { margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; }
+    .step-word { font-family:'DM Mono',monospace; font-size:0.65rem; background:rgba(0,200,255,0.1); color:var(--symspell); padding:2px 6px; border-radius:3px; }
+    .step-results { margin-top:4px; font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); }
+
+    .outcome-box { padding:12px; background:var(--accent-dim); border:1px solid rgba(200,255,0,0.2); border-radius:6px; margin-top:12px; }
+    .outcome-label { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); margin-bottom:8px; }
+    .outcome-items { display:flex; gap:16px; flex-wrap:wrap; font-family:'DM Mono',monospace; font-size:0.72rem; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>Smart <span>Search</span> Analytics</h1>
+      <div class="period" id="period">Loading...</div>
+    </div>
+    <div class="header-right">
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="replay-bar">
+    <input class="replay-input" id="replay-input" type="text"
+      placeholder="Type any query to replay pipeline... e.g. leggigns"
+      onkeydown="if(event.key==='Enter') replayQuery(this.value)" />
+    <button class="replay-btn" onclick="replayQuery(document.getElementById('replay-input').value)">▶ Replay</button>
+  </div>
+
+  <div id="content">
+    <div class="loading"><div class="spinner"></div><br>Loading analytics...</div>
+  </div>
+
+  <div class="modal-overlay" id="replay-modal" onclick="handleModalClick(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title">Pipeline Replay</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <div class="loading"><div class="spinner"></div><br>Loading...</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const API = 'http://localhost:3000';
+  const KEY = 'searchapikey123';
+
+  const STATUS_COLOR = {
+    accepted:'var(--good)', pass:'var(--good)', miss:'var(--muted)',
+    skipped:'var(--muted)', penalised:'var(--fallback)', zero_results:'var(--fallback)',
+    rejected_no_results:'var(--fallback)', rejected_not_better:'var(--warn)',
+    same_as_original:'var(--muted)', changed:'var(--accent)', pending:'var(--warn)'
+  };
+  const STATUS_ICON = {
+    accepted:'✅', pass:'✅', miss:'⊘', skipped:'⊘', penalised:'❌',
+    zero_results:'❌', rejected_no_results:'❌', rejected_not_better:'⚠️',
+    same_as_original:'⊘', changed:'✏️', pending:'⏳'
+  };
+
+  // source color mapping ✅
+  const SOURCE_COLOR = {
+    manual:   'var(--learnedmap)',
+    symspell: 'var(--symspell)',
+    phonetic: 'var(--phonetic)',
+    groq:     'var(--ollama)',
+    ollama:   'var(--ollama)',
+    click:    'var(--good)'
+  };
+
+  function handleModalClick(e) {
+    if (e.target === document.getElementById('replay-modal')) closeModal();
+  }
+  function closeModal() {
+    document.getElementById('replay-modal').classList.remove('open');
+  }
+  function openModal(title) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML =
+      `<div class="loading"><div class="spinner"></div><br>Loading pipeline trace...</div>`;
+    document.getElementById('replay-modal').classList.add('open');
+  }
+
+  async function replayQuery(query) {
+    query = (query || '').trim();
+    if (!query) return;
+    document.getElementById('replay-input').value = query;
+    openModal(`Pipeline Replay: "${query}"`);
+    try {
+      const res = await fetch(`${API}/api/analytics/replay?q=${encodeURIComponent(query)}`,
+        { headers: { 'x-api-key': KEY } });
+      const json = await res.json();
+      if (!json.data || json.data.length === 0) {
+        document.getElementById('modal-body').innerHTML =
+          `<div class="empty">No replay data found for "${query}"<br><br>Search for this query first.</div>`;
+        return;
+      }
+      document.getElementById('modal-body').innerHTML =
+        json.data.map((e, i) => renderEntry(e, i, json.data.length)).join('');
+    } catch(e) {
+      document.getElementById('modal-body').innerHTML =
+        `<div class="empty">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  function renderEntry(entry, idx, total) {
+    const ts = new Date(entry.ts).toLocaleString();
+    return `
+    <div style="margin-bottom:${idx < total-1 ? '24px' : '0'};${idx < total-1 ? 'border-bottom:1px solid var(--border);padding-bottom:24px' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">${ts}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${badge(entry.outcome.source)}
+          <span style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted)">${entry.timing.total}ms</span>
+        </div>
+      </div>
+      ${entry.pipeline.map(step => `
+        <div class="pipeline-step" style="border-left-color:${STATUS_COLOR[step.status] || 'var(--border)'}">
+          <div class="step-num">${step.step}</div>
+          <div class="step-body">
+            <div class="step-header">
+              <span class="step-name">${step.name}</span>
+              <span class="step-status" style="color:${STATUS_COLOR[step.status] || 'var(--muted)'}">
+                ${STATUS_ICON[step.status] || '?'} ${step.status}
+              </span>
+              ${step.time > 0 ? `<span class="step-time">${step.time}ms</span>` : ''}
+            </div>
+            <div class="step-detail">${step.detail}</div>
+            ${step.changedWords?.length > 0 ? `<div class="step-words">
+              ${step.changedWords.map(w =>
+                `<span class="step-word">"${w.original}" → "${w.correction}" (dist:${w.distance})</span>`
+              ).join('')}</div>` : ''}
+            ${step.status !== 'miss' && step.status !== 'skipped' && step.status !== 'pass' && step.status !== 'changed' &&
+              step.resultsBefore !== undefined && step.resultsAfter !== undefined
+              ? `<div class="step-results">results: ${step.resultsBefore} → ${step.resultsAfter}
+                 ${step.resultsAfter > step.resultsBefore
+                   ? `<span style="color:var(--good)"> (+${step.resultsAfter - step.resultsBefore})</span>` : ''}
+                 </div>` : ''}
+          </div>
+        </div>`).join('')}
+      <div class="outcome-box">
+        <div class="outcome-label">FINAL OUTCOME</div>
+        <div class="outcome-items">
+          <span>stage: <span style="color:var(--accent)">${entry.outcome.searchStage}</span></span>
+          <span>depth: <span style="color:var(--accent)">${entry.outcome.correctionDepth}</span></span>
+          <span>query: <span style="color:var(--accent)">"${entry.outcome.finalQuery}"</span></span>
+          <span>results: <span style="color:var(--accent)">${entry.outcome.resultsCount.toLocaleString()}</span></span>
+          ${entry.outcome.correctionApplied
+            ? `<span>correction: <span style="color:var(--good)">✓ ${entry.outcome.source} (${Math.round((entry.outcome.confidence||0)*100)}%)</span></span>`
+            : `<span>correction: <span style="color:var(--muted)">none applied</span></span>`}
+          <span>latency: <span style="color:${
+            entry.timing.latencyBucket === 'fast' ? 'var(--good)' :
+            entry.timing.latencyBucket === 'medium' ? 'var(--accent)' : 'var(--warn)'
+          }">${entry.timing.total}ms (${entry.timing.latencyBucket})</span></span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function loadAll() {
+    document.getElementById('content').innerHTML =
+      `<div class="loading"><div class="spinner"></div><br>Loading analytics...</div>`;
+    try {
+      const [analyticsRes, correctionsRes] = await Promise.all([
+        fetch(`${API}/api/analytics`,         { headers: { 'x-api-key': KEY } }),
+        fetch(`${API}/api/admin/corrections`, { headers: { 'x-api-key': KEY } })
+      ]);
+      const analytics   = await analyticsRes.json();
+      const corrections = await correctionsRes.json();
+
+      if (!analytics.data) {
+        document.getElementById('content').innerHTML =
+          `<div class="empty">No analytics data yet.<br>Run some searches first!</div>`;
+        return;
+      }
+      render(analytics.data, corrections.data || corrections);
+    } catch(e) {
+      document.getElementById('content').innerHTML =
+        `<div class="empty">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  function pct(n, total) { return total > 0 ? Math.round((n / total) * 100) : 0; }
+
+  function badge(source) {
+    return `<span class="badge badge-${source || 'none'}">${source || 'none'}</span>`;
+  }
+
+  function stageColor(stage) {
+    return { meilisearch:'fill-meilisearch', learnedmap:'fill-learnedmap',
+             symspell:'fill-symspell', ollama:'fill-ollama', fallback:'fill-fallback'
+    }[stage] || 'fill-muted';
+  }
+
+  function srColor(rate) {
+    if (rate === null || rate === undefined) return 'var(--muted)';
+    if (rate >= 90) return 'var(--good)';
+    if (rate >= 70) return 'var(--warn)';
+    return 'var(--fallback)';
+  }
+
+  function render(d, c) {
+    const s     = d.summary;
+    const total = s.totalSearches;
+    const cs    = c.stats || {};
+
+    if (s.period) {
+      const from = new Date(s.period.from).toLocaleString();
+      const to   = new Date(s.period.to).toLocaleString();
+      document.getElementById('period').textContent = `${from} → ${to}`;
+    }
+
+    let html = '';
+
+    // ── ROW 1: SUMMARY STATS ─────────────────────────────
+    html += `<div class="grid grid-5" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Total Searches</div>
+        <div class="stat-value accent">${total.toLocaleString()}</div>
+        <div class="stat-sub">all time</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Correction Rate</div>
+        <div class="stat-value ${s.correctionRate > 30 ? 'warn' : 'good'}">${s.correctionRate}%</div>
+        <div class="stat-sub">${s.correctionApplied} corrections applied</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Zero Result Rate</div>
+        <div class="stat-value ${s.zeroResultRate > 5 ? 'danger' : 'good'}">${s.zeroResultRate}%</div>
+        <div class="stat-sub">${s.zeroResults} found nothing</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Avg Success Rate</div>
+        <div class="stat-value ${cs.avgSuccessRate >= 90 ? 'good' : cs.avgSuccessRate >= 70 ? 'warn' : 'danger'}"
+          style="font-size:1.6rem">
+          ${cs.avgSuccessRate !== null && cs.avgSuccessRate !== undefined ? cs.avgSuccessRate + '%' : '—'}
+        </div>
+        <div class="stat-sub">correction quality</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Promoted (7d)</div>
+        <div class="stat-value accent" style="font-size:1.6rem">${cs.promotedLast7Days || 0}</div>
+        <div class="stat-sub">${cs.trusted || 0} trusted · ${cs.proven || 0} proven</div>
+      </div>
+    </div>`;
+
+    // ── ROW 2: LEARNEDMAP LIFECYCLE ───────────────────────
+    html += `<div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">LearnedMap Lifecycle</div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">total entries</span>
+          <span class="lifecycle-value" style="color:var(--accent)">${cs.total || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">candidate</span>
+          <span class="lifecycle-value" style="color:var(--muted)">${cs.candidates || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">trusted (≥5 hits)</span>
+          <span class="lifecycle-value" style="color:var(--warn)">${cs.trusted || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">proven (≥50 hits)</span>
+          <span class="lifecycle-value" style="color:var(--good)">${cs.proven || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">disabled</span>
+          <span class="lifecycle-value" style="color:var(--fallback)">${cs.disabled || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">groq candidates</span>
+          <span class="lifecycle-value" style="color:var(--ollama)">${cs.groq || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">never used</span>
+          <span class="lifecycle-value" style="color:var(--muted)">${cs.neverUsed || 0}</span>
+        </div>
+        <div class="lifecycle-row">
+          <span class="lifecycle-label">high value (≥10 hits)</span>
+          <span class="lifecycle-value" style="color:var(--good)">${cs.highValue || 0}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">LearnedMap Layer Performance</div>
+        <div class="layer-card">
+          <div class="layer-dot" style="background:var(--learnedmap)"></div>
+          <div class="layer-name">LearnedMap</div>
+          <div class="layer-stat">
+            <div class="layer-rate" style="color:var(--learnedmap)">${d.layers.learnedMap?.hitRate || 0}%</div>
+            <div>hit rate</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);display:flex;gap:16px;margin-bottom:12px">
+          <span>hits: ${d.layers.learnedMap?.hits || 0}</span>
+          <span style="color:var(--good)">✓ accepted: ${d.layers.learnedMap?.accepted || 0}</span>
+          <span style="color:var(--fallback)">✗ penalised: ${d.layers.learnedMap?.penalised || 0}</span>
+        </div>
+        <div class="layer-card">
+          <div class="layer-dot" style="background:var(--phonetic)"></div>
+          <div class="layer-name">Phonetic</div>
+          <div class="layer-stat">
+            <div class="layer-rate" style="color:var(--phonetic)">${d.layers.phonetic?.acceptRate || 0}%</div>
+            <div>accept rate</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);display:flex;gap:16px">
+          <span>calls: ${d.layers.phonetic?.calls || 0}</span>
+          <span style="color:var(--good)">✓ ${d.layers.phonetic?.accepted || 0}</span>
+        </div>
+      </div>
+    </div>`;
+
+    // ── ROW 3: SOURCE PERFORMANCE ─────────────────────────
+    // north star metric — per source quality ✅
+    // avgSuccessRate = null until real traffic flows ✅
+    // groq neverUsed = 21 until real users search ✅
+    const sp = c.sourcePerformance || {};
+    if (Object.keys(sp).length > 0) {
+      html += `<div class="section-title">Source Performance — correction quality by origin</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Entries</th>
+                <th>With Traffic</th>
+                <th>Avg Success</th>
+                <th>Trusted</th>
+                <th>Proven</th>
+                <th>Disabled</th>
+                <th>Never Used</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${Object.entries(sp).map(([src, data]) => {
+                const srColorVal = data.avgSuccessRate === null
+                  ? 'var(--muted)'
+                  : data.avgSuccessRate >= 90 ? 'var(--good)'
+                  : data.avgSuccessRate >= 70 ? 'var(--warn)'
+                  : 'var(--fallback)';
+                const trafficPct = data.entries > 0
+                  ? Math.round((data.withTraffic / data.entries) * 100)
+                  : 0;
+                return `<tr>
+                  <td>${badge(src)}</td>
+                  <td style="color:var(--text)">${data.entries}</td>
+                  <td>
+                    <span style="color:var(--text)">${data.withTraffic}</span>
+                    <span style="color:var(--muted);font-size:0.65rem"> (${trafficPct}%)</span>
+                  </td>
+                  <td>
+                    <span style="color:${srColorVal};font-weight:700">
+                      ${data.avgSuccessRate !== null ? data.avgSuccessRate + '%' : '—'}
+                    </span>
+                    ${data.avgSuccessRate === null
+                      ? `<span style="color:var(--muted);font-size:0.62rem"> awaiting traffic</span>`
+                      : ''}
+                  </td>
+                  <td style="color:var(--warn)">${data.trusted}</td>
+                  <td style="color:var(--good)">${data.proven}</td>
+                  <td style="color:${data.disabled > 0 ? 'var(--fallback)' : 'var(--muted)'}">${data.disabled}</td>
+                  <td style="color:var(--muted)">${data.neverUsed}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);display:flex;gap:24px;flex-wrap:wrap">
+          <span>— = no traffic yet</span>
+          <span style="color:var(--good)">≥90% good</span>
+          <span style="color:var(--warn)">70–89% watch</span>
+          <span style="color:var(--fallback)">&lt;70% investigate</span>
+          <span>trusted = ≥5 hits · proven = ≥50 hits</span>
+        </div>
+      </div>`;
+    }
+
+    // ── ROW 4: LATENCY + STAGES ───────────────────────────
+    html += `<div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Latency Percentiles</div>
+        <div class="timing-grid">
+          <div class="timing-cell">
+            <div class="timing-label">p50 (median)</div>
+            <div class="timing-value" style="color:var(--good)">${d.timing.p50}</div>
+            <div class="timing-unit">ms</div>
+          </div>
+          <div class="timing-cell">
+            <div class="timing-label">p95</div>
+            <div class="timing-value" style="color:var(--warn)">${d.timing.p95}</div>
+            <div class="timing-unit">ms</div>
+          </div>
+          <div class="timing-cell">
+            <div class="timing-label">p99 (worst)</div>
+            <div class="timing-value" style="color:var(--fallback)">${d.timing.p99}</div>
+            <div class="timing-unit">ms</div>
+          </div>
+        </div>
+        <div class="bar-list">
+          ${Object.entries(d.latency).map(([label, count]) => `
+            <div class="bar-item">
+              <div class="bar-label">${label}</div>
+              <div class="bar-track">
+                <div class="bar-fill ${
+                  label === 'fast' ? 'fill-good' : label === 'medium' ? 'fill-accent' :
+                  label === 'slow' ? 'fill-warn' : 'fill-fallback'
+                }" style="width:${pct(count, total)}%"></div>
+              </div>
+              <div class="bar-count">${count}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Search Stage Distribution</div>
+        <div class="bar-list">
+          ${Object.entries(d.stages).sort((a,b) => b[1]-a[1]).map(([stage, count]) => `
+            <div class="bar-item">
+              <div class="bar-label">${stage}</div>
+              <div class="bar-track">
+                <div class="bar-fill ${stageColor(stage)}" style="width:${pct(count, total)}%"></div>
+              </div>
+              <div class="bar-count">${count} (${pct(count,total)}%)</div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          avg total: ${d.timing.avgTotal}ms &nbsp;|&nbsp; avg symspell: ${d.timing.avgSymspell}ms
+        </div>
+      </div>
+    </div>`;
+
+    // ── ROW 5: CORRECTION DEPTH + SOURCES + MODES ────────
+    const depthColors = ['fill-muted','fill-learnedmap','fill-symspell','fill-ollama'];
+    const depthLabels = ['None','LearnedMap','SymSpell','Ollama'];
+    const maxDepth    = Math.max(...Object.values(d.depths || {}), 1);
+
+    html += `<div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Correction Depth</div>
+        <div class="depth-viz">
+          ${Object.entries(d.depths || {}).map(([depth, count], i) => `
+            <div class="depth-bar-wrap">
+              <div class="depth-count">${count}</div>
+              <div class="depth-bar ${depthColors[i] || 'fill-muted'}"
+                style="height:${Math.max(4, Math.round((count/maxDepth)*60))}px"></div>
+              <div class="depth-label">${depthLabels[i] || depth}</div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:8px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          depth 0 = no correction · depth 3 spike = investigate
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Correction Sources</div>
+        <div class="bar-list">
+          ${Object.entries(d.sources || {}).sort((a,b) => b[1]-a[1]).map(([src, count]) => `
+            <div class="bar-item">
+              <div class="bar-label">${badge(src)}</div>
+              <div class="bar-track">
+                <div class="bar-fill ${
+                  src === 'symspell' ? 'fill-symspell' : src === 'ollama' ? 'fill-ollama' :
+                  src === 'phonetic' ? 'fill-phonetic' :
+                  src === 'manual' || src === 'learnedmap' ? 'fill-learnedmap' : 'fill-muted'
+                }" style="width:${pct(count, total)}%"></div>
+              </div>
+              <div class="bar-count">${count}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Correction Modes</div>
+        <div class="bar-list">
+          ${Object.entries(d.correctionModes || {}).sort((a,b) => b[1]-a[1]).map(([mode, count]) => `
+            <div class="bar-item">
+              <div class="bar-label">${mode}</div>
+              <div class="bar-track">
+                <div class="bar-fill ${
+                  mode === 'full' ? 'fill-learnedmap' : mode === 'assisted' ? 'fill-symspell' : 'fill-muted'
+                }" style="width:${pct(count, total)}%"></div>
+              </div>
+              <div class="bar-count">${count} (${pct(count,total)}%)</div>
+            </div>`).join('')}
+        </div>
+        <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          full = retrieval corrected · assisted = cosmetic only
+        </div>
+      </div>
+    </div>`;
+
+    // ── ROW 6: LAYER PERFORMANCE ──────────────────────────
+    html += `<div class="section-title">Layer Performance</div>
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">SymSpell Layer</div>
+        <div class="layer-card">
+          <div class="layer-dot" style="background:var(--symspell)"></div>
+          <div class="layer-name">SymSpell</div>
+          <div class="layer-stat">
+            <div class="layer-rate" style="color:var(--symspell)">${d.layers.symspell.acceptRate}%</div>
+            <div>accept rate</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);display:flex;gap:16px">
+          <span>calls: ${d.layers.symspell.calls}</span>
+          <span style="color:var(--good)">✓ ${d.layers.symspell.accepted}</span>
+          <span style="color:var(--fallback)">✗ ${d.layers.symspell.rejected}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Ollama Layer</div>
+        <div class="layer-card">
+          <div class="layer-dot" style="background:var(--ollama)"></div>
+          <div class="layer-name">Ollama AI</div>
+          <div class="layer-stat">
+            <div class="layer-rate" style="color:var(--ollama)">${d.layers.ollama.acceptRate}%</div>
+            <div>accept rate</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);display:flex;gap:16px">
+          <span>calls: ${d.layers.ollama.calls}</span>
+          <span style="color:var(--good)">✓ ${d.layers.ollama.accepted}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Query Types</div>
+        <div class="bar-list">
+          ${Object.entries(d.queryTypes || {}).sort((a,b) => b[1]-a[1]).map(([type, count]) => `
+            <div class="bar-item">
+              <div class="bar-label">${type}</div>
+              <div class="bar-track">
+                <div class="bar-fill fill-accent" style="width:${pct(count, total)}%"></div>
+              </div>
+              <div class="bar-count">${count}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    // ── ROW 7: TOP CORRECTIONS ────────────────────────────
+    html += `<div class="section-title">Top Queries — click to replay pipeline</div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Most Searched</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Query</th><th>Count</th></tr></thead>
+            <tbody>
+              ${(d.topQueries || []).slice(0,10).map((q, i) => `
+                <tr class="clickable" onclick="replayQuery('${q.query.replace(/'/g,"\\'")}')">
+                  <td style="color:var(--muted)">${i+1}</td>
+                  <td>▶ ${q.query}</td>
+                  <td style="color:var(--accent)">${q.count}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Top Corrections — with Success Rate</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Correction</th><th>Hits</th><th>Success%</th><th>Status</th></tr></thead>
+            <tbody>
+              ${(c.topCorrections || []).slice(0,10).map((item, i) => `
+                <tr>
+                  <td style="color:var(--muted)">${i+1}</td>
+                  <td>${item.query} → <span style="color:var(--accent)">${item.correction}</span></td>
+                  <td>${item.hitCount}</td>
+                  <td style="color:${srColor(item.successRate)}">
+                    ${item.successRate !== null ? item.successRate + '%' : '—'}
+                  </td>
+                  <td>${badge(item.status)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+    // ── ROW 8: LOWEST SUCCESS RATE ────────────────────────
+    if (c.lowestSuccessRate?.length > 0) {
+      html += `<div class="section-title">⚠️ Low Success Rate Corrections (needs attention)</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Query</th><th>Correction</th><th>Hits</th><th>Failures</th><th>Success%</th><th>Source</th></tr></thead>
+            <tbody>
+              ${c.lowestSuccessRate.map(item => `
+                <tr>
+                  <td>${item.query}</td>
+                  <td style="color:var(--accent)">${item.correction}</td>
+                  <td>${item.hitCount}</td>
+                  <td style="color:var(--fallback)">${item.failures}</td>
+                  <td style="color:${srColor(item.successRate)}">${item.successRate}%</td>
+                  <td>${badge(item.source)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    // ── ROW 9: CROSS-CLIENT RISKS ─────────────────────────
+    if (c.crossClientRisks?.length > 0) {
+      html += `<div class="section-title">🔀 Cross-Client Penalty Risks</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Query</th><th>Correction</th><th>Scope</th><th>Learned From</th><th>Penalised By</th><th>Failures</th><th>Success%</th></tr></thead>
+            <tbody>
+              ${c.crossClientRisks.map(item => `
+                <tr>
+                  <td>${item.query}</td>
+                  <td style="color:var(--accent)">${item.correction}</td>
+                  <td><span class="badge badge-none">${item.scope}</span></td>
+                  <td style="color:var(--good)">client_${item.learnedFrom}</td>
+                  <td style="color:var(--fallback)">client_${item.penalisedByClient}</td>
+                  <td style="color:var(--fallback)">${item.failures}</td>
+                  <td style="color:${srColor(item.successRate)}">${item.successRate !== null ? item.successRate + '%' : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          Corrections learned from one client but penalised by another.
+          If this list grows → consider scope enforcement.
+        </div>
+      </div>`;
+    }
+
+    // ── ROW 10: GROQ CANDIDATES ───────────────────────────
+    if (c.groqCandidates?.length > 0) {
+      html += `<div class="section-title">Groq Candidates (pending real-world validation)</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Query</th><th>Correction</th><th>Confidence</th><th>Scope</th><th>First Seen</th></tr></thead>
+            <tbody>
+              ${c.groqCandidates.slice(0,10).map(item => `
+                <tr>
+                  <td>${item.query}</td>
+                  <td style="color:var(--accent)">${item.correction}</td>
+                  <td>${item.confidence ? Math.round(item.confidence * 100) + '%' : '—'}</td>
+                  <td><span class="badge badge-none">${item.scope || 'global'}</span></td>
+                  <td style="color:var(--muted)">${item.firstSeen ? new Date(item.firstSeen).toLocaleDateString() : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    // ── ROW 11: DISABLED ENTRIES ──────────────────────────
+    if (c.disabledEntries?.length > 0) {
+      html += `<div class="section-title">Disabled Corrections</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Query</th><th>Correction</th><th>Failures</th><th>Success%</th><th>Clicks to Re-enable</th></tr></thead>
+            <tbody>
+              ${c.disabledEntries.map(item => `
+                <tr>
+                  <td>${item.query}</td>
+                  <td style="color:var(--muted);text-decoration:line-through">${item.correction}</td>
+                  <td style="color:var(--fallback)">${item.failures}</td>
+                  <td style="color:${srColor(item.successRate)}">${item.successRate !== null ? item.successRate + '%' : '—'}</td>
+                  <td style="color:var(--warn)">${item.clicksSinceDisabled || 0} / 3</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    // ── ROW 12: BY CLIENT ─────────────────────────────────
+    if (d.byClient && Object.keys(d.byClient).length > 0) {
+      html += `<div class="section-title">Per-Client Breakdown</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Client</th><th>Searches</th><th>Corrections</th><th>Zero Results</th><th>Fallbacks</th><th>Correction Rate</th></tr></thead>
+            <tbody>
+              ${Object.entries(d.byClient).sort((a,b) => b[1].searches - a[1].searches).map(([cid, data]) => `
+                <tr>
+                  <td style="color:var(--accent)">client_${cid}</td>
+                  <td>${data.searches}</td>
+                  <td style="color:var(--learnedmap)">${data.corrections}</td>
+                  <td style="color:${data.zeroResults > 0 ? 'var(--fallback)' : 'var(--good)'}">${data.zeroResults}</td>
+                  <td>${data.fallbacks}</td>
+                  <td>${data.searches > 0 ? Math.round(data.corrections/data.searches*100) : 0}%</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    // ── ROW 13: PROBLEM QUERIES ───────────────────────────
+    html += `<div class="section-title">Problem Queries</div>
+    <div class="grid grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">Zero Result Queries — click to replay</div>
+        ${d.zeroResultQueries?.length > 0
+          ? `<div class="tag-list">${d.zeroResultQueries.map(q =>
+              `<span class="tag zero" onclick="replayQuery('${q.replace(/'/g,"\\'")}')">${q}</span>`
+            ).join('')}</div>`
+          : `<div style="color:var(--good);font-family:'DM Mono',monospace;font-size:0.8rem">✓ No zero result queries!</div>`}
+      </div>
+      <div class="card">
+        <div class="card-title">Weak Result Queries — click to replay</div>
+        ${d.weakResultQueries?.length > 0
+          ? `<div class="tag-list">${d.weakResultQueries.map(q =>
+              `<span class="tag weak" onclick="replayQuery('${q.replace(/'/g,"\\'")}')">${q}</span>`
+            ).join('')}</div>`
+          : `<div style="color:var(--good);font-family:'DM Mono',monospace;font-size:0.8rem">✓ No weak result queries!</div>`}
+      </div>
+    </div>`;
+
+    // ── ROW 14: SLOW QUERIES ──────────────────────────────
+    if (d.slowQueries?.length > 0) {
+      html += `<div class="section-title">Slow Queries (&gt;1000ms)</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Query</th><th>Time</th><th>Stage</th></tr></thead>
+            <tbody>
+              ${d.slowQueries.map(q => `
+                <tr class="clickable" onclick="replayQuery('${q.query.replace(/'/g,"\\'")}')" >
+                  <td>▶ ${q.query}</td>
+                  <td style="color:var(--fallback)">${q.time}ms</td>
+                  <td>${badge(q.stage)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    document.getElementById('content').innerHTML = html;
+  }
+
+  loadAll();
+  setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

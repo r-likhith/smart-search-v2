@@ -1,0 +1,30 @@
+{
+  "name": "smart-search-v2",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@elastic/elasticsearch": "^9.4.1",
+    "axios": "^1.15.2",
+    "dotenv": "^17.4.2",
+    "double-metaphone": "^1.0.5",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.4.1",
+    "groq-sdk": "^1.2.1",
+    "ioredis": "^5.10.1",
+    "meilisearch": "^0.36.0",
+    "mongoose": "^9.6.1",
+    "morgan": "^1.10.1",
+    "natural": "^8.1.1",
+    "node-fetch": "^2.7.0",
+    "node-symspell": "^0.1.0",
+    "uui": "^1.0.7",
+    "xlsx": "^0.18.5"
+  }
+}
