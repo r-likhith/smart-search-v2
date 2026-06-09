@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+
+  # ── Meilisearch ─────────────────────────────────────────
+  # starts first — smart-search waits for it ✅
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: smart-search-meili
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: production
+    volumes:
+      # named volume — persists across docker compose down/up ✅
+      - meili_data:/meili_data
+    ports:
+      - "7700:7700"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ── Smart Search API ─────────────────────────────────────
+  # starts only after meilisearch is healthy ✅
+  smart-search:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-search-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # override MEILI_HOST — use docker service name ✅
+      # this overrides the localhost value in .env ✅
+      MEILI_HOST: http://meilisearch:7700
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      # mount local dirs — data persists ✅
+      - ./learned:/app/learned
+      - ./logs:/app/logs
+      - ./multiTenantLogs:/app/multiTenantLogs
+      - ./sync_state:/app/sync_state
+      - ./data:/app/data
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+
+volumes:
+  # named volume for Meilisearch ✅
+  # survives docker compose down ✅
+  meili_data:

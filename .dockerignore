@@ -1,0 +1,14 @@
+node_modules
+.env
+.git
+data.ms
+dumps
+logs
+multiTenantLogs
+oldFixFiles
+*.xlsx
+*.csv
+.DS_Store
+learned/*.json
+learned/*.backup.json
+sync_state
