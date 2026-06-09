@@ -23,3 +23,13 @@ multiTenantLogs/
 # remove this line if you want oldFixFiles tracked ✅
 # oldFixFiles/
 oldFixFiles/
+
+# runtime data — changes constantly ✅
+learned/*.json
+learned/*.backup.json
+
+# keep directory structure ✅
+!learned/.gitkeep
+
+# sync state runtime ✅
+sync_state/
