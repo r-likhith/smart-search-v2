@@ -163,6 +163,43 @@ docker compose down
 
 ---
 
+# docker compose down ✅ — use this normally
+What it does:
+→ stops containers ✅
+→ removes containers ✅
+→ removes network ✅
+
+What it KEEPS:
+→ meili_data volume ✅
+→ all your product indexes ✅
+→ all your learned corrections ✅
+→ all your logs ✅
+
+Use this: every time you stop ✅
+
+# docker compose down -v ⚠️ — use carefully
+What it does:
+→ everything above PLUS ✅
+→ DELETES meili_data volume ✅
+→ ALL product indexes gone ✅
+→ Meilisearch starts empty ✅
+→ need to reimport everything ✅
+
+Use this ONLY when:
+→ you want a completely fresh start ✅
+→ data is corrupted ✅
+→ switching Meilisearch versions ✅
+→ intentional wipe ✅
+
+Rule of thumb
+Daily use:
+→ docker compose down ✅
+
+Something broken, need fresh start:
+→ docker compose down -v ✅
+→ then docker compose up ✅
+→ data reloads from data.ms ✅
+
 ## Starting again later
 
 ```bash
