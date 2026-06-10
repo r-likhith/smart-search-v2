@@ -1,15 +1,14 @@
 services:
 
-  # ── Meilisearch ─────────────────────────────────────────
   meilisearch:
-    image: getmeili/meilisearch:v1.6
+    image: getmeili/meilisearch:v1.42.1
     container_name: smart-search-meili
     restart: unless-stopped
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       MEILI_ENV: production
     volumes:
-      - meili_data:/meili_data
+      - ./data.ms:/meili_data/data.ms
     ports:
       - "7700:7700"
     healthcheck:
@@ -17,9 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 20s
+      start_period: 60s
 
-  # ── Smart Search API ─────────────────────────────────────
   smart-search:
     build:
       context: .
