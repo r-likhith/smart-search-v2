@@ -34,3 +34,6 @@ learned/*.backup.json
 # sync state runtime ✅
 sync_state/
 data.ms/
+
+# seed files — committed intentionally ✅
+!learned/*.seed.json
