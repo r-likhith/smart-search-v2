@@ -166,6 +166,26 @@
     .outcome-box { padding:12px; background:var(--accent-dim); border:1px solid rgba(200,255,0,0.2); border-radius:6px; margin-top:12px; }
     .outcome-label { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); margin-bottom:8px; }
     .outcome-items { display:flex; gap:16px; flex-wrap:wrap; font-family:'DM Mono',monospace; font-size:0.72rem; }
+
+    /* ── LIVE ACTIVITY ──────────────────────────────────── */
+    .activity-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+    .activity-filters { display:flex; gap:6px; flex-wrap:wrap; }
+    .filter-btn { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:4px 12px; font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); cursor:pointer; transition:all 0.2s; }
+    .filter-btn:hover { border-color:var(--accent); color:var(--text); }
+    .filter-btn.active { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+    .activity-meta { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); display:flex; align-items:center; gap:8px; }
+    .activity-pulse { width:6px; height:6px; border-radius:50%; background:var(--good); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .activity-row { display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid #1a1a1a; font-family:'DM Mono',monospace; font-size:0.72rem; }
+    .activity-row:last-child { border-bottom:none; }
+    .activity-time { color:var(--muted); flex-shrink:0; width:60px; padding-top:2px; }
+    .activity-query { font-weight:600; flex-shrink:0; width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .activity-layer { flex-shrink:0; width:90px; }
+    .activity-hits { flex-shrink:0; width:50px; text-align:right; color:var(--muted); }
+    .activity-why { flex:1; color:var(--muted); font-size:0.68rem; line-height:1.4; }
+    .activity-time-ms { flex-shrink:0; width:55px; text-align:right; font-size:0.65rem; }
+    .activity-summary { display:flex; gap:16px; padding:10px 0; font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); border-bottom:1px solid var(--border); margin-bottom:4px; flex-wrap:wrap; }
+    .activity-summary span { color:var(--text); }
   </style>
 </head>
 <body>
@@ -185,6 +205,27 @@
       placeholder="Type any query to replay pipeline... e.g. leggigns"
       onkeydown="if(event.key==='Enter') replayQuery(this.value)" />
     <button class="replay-btn" onclick="replayQuery(document.getElementById('replay-input').value)">▶ Replay</button>
+  </div>
+
+  <!-- ── LIVE ACTIVITY PANEL ─────────────────────────── -->
+  <div class="section-title">⚡ Live Search Intelligence</div>
+  <div class="card" style="margin-bottom:24px">
+    <div class="activity-header">
+      <div class="activity-filters">
+        <button class="filter-btn active" onclick="setActivityFilter('all', this)">All</button>
+        <button class="filter-btn" onclick="setActivityFilter('corrections', this)">Corrections only</button>
+        <button class="filter-btn" onclick="setActivityFilter('zero', this)">Zero results</button>
+        <button class="filter-btn" onclick="setActivityFilter('groq', this)">Groq only</button>
+      </div>
+      <div class="activity-meta">
+        <div class="activity-pulse"></div>
+        <span>auto-refresh 10s</span>
+        <span id="activity-last-update" style="color:var(--muted)">—</span>
+      </div>
+    </div>
+    <div id="activity-panel">
+      <div class="loading" style="padding:30px"><div class="spinner"></div><br>Loading activity...</div>
+    </div>
   </div>
 
   <div id="content">
@@ -207,6 +248,99 @@
   const API = 'http://localhost:3000';
   const KEY = 'searchapikey123';
 
+  // ── LIVE ACTIVITY ──────────────────────────────────────
+
+  let activityFilter = 'all';
+
+  function setActivityFilter(filter, btn) {
+    activityFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadActivity();
+  }
+
+  const LAYER_COLOR = {
+    learnedmap:  'var(--learnedmap)',
+    symspell:    'var(--symspell)',
+    phonetic:    'var(--phonetic)',
+    meilisearch: 'var(--meilisearch)',
+    fallback:    'var(--fallback)',
+    ollama:      'var(--ollama)'
+  };
+
+  async function loadActivity() {
+    try {
+      const params = new URLSearchParams({ limit: '20' });
+      if (activityFilter === 'corrections') params.set('correctionOnly', 'true');
+      if (activityFilter === 'zero')        params.set('zeroResultOnly', 'true');
+      if (activityFilter === 'groq')        params.set('groqOnly', 'true');
+
+      const res  = await fetch(`${API}/api/admin/recent-activity?${params}`,
+        { headers: { 'x-api-key': KEY } });
+      const json = await res.json();
+
+      if (!json.events || json.events.length === 0) {
+        document.getElementById('activity-panel').innerHTML =
+          `<div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.8rem;padding:20px 0">
+            No activity yet — run some searches first
+          </div>`;
+        return;
+      }
+
+      const s = json.summary;
+      const corrRate = s.total > 0 ? Math.round(s.corrected / s.total * 100) : 0;
+
+      let html = `<div class="activity-summary">
+        <span>total: <span>${s.total}</span></span>
+        <span>corrected: <span style="color:var(--learnedmap)">${s.corrected}</span></span>
+        <span>correction rate: <span style="color:${corrRate > 30 ? 'var(--warn)' : 'var(--good)'}">${corrRate}%</span></span>
+        <span>zero results: <span style="color:${s.zeroResults > 0 ? 'var(--fallback)' : 'var(--good)'}">${s.zeroResults}</span></span>
+        <span>fallbacks: <span style="color:${s.fallbacks > 0 ? 'var(--warn)' : 'var(--muted)'}">${s.fallbacks}</span></span>
+        <span>avg latency: <span style="color:${s.avgLatency > 200 ? 'var(--warn)' : 'var(--good)'}">${s.avgLatency}ms</span></span>
+        <span style="margin-left:auto">
+          learnedmap: <span style="color:var(--learnedmap)">${s.layerBreakdown.learnedmap}</span> ·
+          symspell: <span style="color:var(--symspell)">${s.layerBreakdown.symspell}</span> ·
+          phonetic: <span style="color:var(--phonetic)">${s.layerBreakdown.phonetic}</span> ·
+          direct: <span style="color:var(--meilisearch)">${s.layerBreakdown.meilisearch}</span> ·
+          fallback: <span style="color:var(--fallback)">${s.layerBreakdown.fallback}</span>
+        </span>
+      </div>`;
+
+      html += json.events.map(e => {
+        const layerColor = LAYER_COLOR[e.layer] || 'var(--muted)';
+        const latColor = e.processingTime < 100 ? 'var(--good)'
+          : e.processingTime < 500 ? 'var(--warn)' : 'var(--fallback)';
+        return `<div class="activity-row">
+          <div class="activity-time">${e.time || '—'}</div>
+          <div class="activity-query" title="${e.query}">${e.query}</div>
+          <div class="activity-layer">
+            <span style="color:${layerColor};font-weight:600">${e.layer}</span>
+            ${e.corrected
+              ? `<span style="color:var(--good);font-size:0.65rem"> ✓</span>`
+              : e.isFallback
+              ? `<span style="color:var(--fallback);font-size:0.65rem"> ✗</span>`
+              : ''}
+          </div>
+          <div class="activity-hits" style="color:${e.hits === 0 ? 'var(--fallback)' : 'var(--text)'}">
+            ${e.hits}
+          </div>
+          <div class="activity-why">${e.why || '—'}</div>
+          <div class="activity-time-ms" style="color:${latColor}">${e.processingTime}ms</div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('activity-panel').innerHTML = html;
+      document.getElementById('activity-last-update').textContent =
+        new Date().toLocaleTimeString('en', { hour12: false });
+
+    } catch(e) {
+      document.getElementById('activity-panel').innerHTML =
+        `<div style="color:var(--fallback);font-family:'DM Mono',monospace;font-size:0.8rem;padding:20px 0">
+          Failed to load: ${e.message}
+        </div>`;
+    }
+  }
+
   const STATUS_COLOR = {
     accepted:'var(--good)', pass:'var(--good)', miss:'var(--muted)',
     skipped:'var(--muted)', penalised:'var(--fallback)', zero_results:'var(--fallback)',
@@ -219,7 +353,6 @@
     same_as_original:'⊘', changed:'✏️', pending:'⏳'
   };
 
-  // source color mapping ✅
   const SOURCE_COLOR = {
     manual:   'var(--learnedmap)',
     symspell: 'var(--symspell)',
@@ -474,9 +607,6 @@
     </div>`;
 
     // ── ROW 3: SOURCE PERFORMANCE ─────────────────────────
-    // north star metric — per source quality ✅
-    // avgSuccessRate = null until real traffic flows ✅
-    // groq neverUsed = 21 until real users search ✅
     const sp = c.sourcePerformance || {};
     if (Object.keys(sp).length > 0) {
       html += `<div class="section-title">Source Performance — correction quality by origin</div>
@@ -485,41 +615,26 @@
           <table>
             <thead>
               <tr>
-                <th>Source</th>
-                <th>Entries</th>
-                <th>With Traffic</th>
-                <th>Avg Success</th>
-                <th>Trusted</th>
-                <th>Proven</th>
-                <th>Disabled</th>
-                <th>Never Used</th>
+                <th>Source</th><th>Entries</th><th>With Traffic</th>
+                <th>Avg Success</th><th>Trusted</th><th>Proven</th>
+                <th>Disabled</th><th>Never Used</th>
               </tr>
             </thead>
             <tbody>
               ${Object.entries(sp).map(([src, data]) => {
-                const srColorVal = data.avgSuccessRate === null
-                  ? 'var(--muted)'
+                const srColorVal = data.avgSuccessRate === null ? 'var(--muted)'
                   : data.avgSuccessRate >= 90 ? 'var(--good)'
-                  : data.avgSuccessRate >= 70 ? 'var(--warn)'
-                  : 'var(--fallback)';
+                  : data.avgSuccessRate >= 70 ? 'var(--warn)' : 'var(--fallback)';
                 const trafficPct = data.entries > 0
-                  ? Math.round((data.withTraffic / data.entries) * 100)
-                  : 0;
+                  ? Math.round((data.withTraffic / data.entries) * 100) : 0;
                 return `<tr>
                   <td>${badge(src)}</td>
-                  <td style="color:var(--text)">${data.entries}</td>
-                  <td>
-                    <span style="color:var(--text)">${data.withTraffic}</span>
-                    <span style="color:var(--muted);font-size:0.65rem"> (${trafficPct}%)</span>
-                  </td>
-                  <td>
-                    <span style="color:${srColorVal};font-weight:700">
-                      ${data.avgSuccessRate !== null ? data.avgSuccessRate + '%' : '—'}
-                    </span>
-                    ${data.avgSuccessRate === null
-                      ? `<span style="color:var(--muted);font-size:0.62rem"> awaiting traffic</span>`
-                      : ''}
-                  </td>
+                  <td>${data.entries}</td>
+                  <td>${data.withTraffic} <span style="color:var(--muted);font-size:0.65rem">(${trafficPct}%)</span></td>
+                  <td><span style="color:${srColorVal};font-weight:700">
+                    ${data.avgSuccessRate !== null ? data.avgSuccessRate + '%' : '—'}
+                  </span>${data.avgSuccessRate === null
+                    ? `<span style="color:var(--muted);font-size:0.62rem"> awaiting traffic</span>` : ''}</td>
                   <td style="color:var(--warn)">${data.trusted}</td>
                   <td style="color:var(--good)">${data.proven}</td>
                   <td style="color:${data.disabled > 0 ? 'var(--fallback)' : 'var(--muted)'}">${data.disabled}</td>
@@ -534,7 +649,6 @@
           <span style="color:var(--good)">≥90% good</span>
           <span style="color:var(--warn)">70–89% watch</span>
           <span style="color:var(--fallback)">&lt;70% investigate</span>
-          <span>trusted = ≥5 hits · proven = ≥50 hits</span>
         </div>
       </div>`;
     }
@@ -574,7 +688,6 @@
             </div>`).join('')}
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Search Stage Distribution</div>
         <div class="bar-list">
@@ -614,7 +727,6 @@
           depth 0 = no correction · depth 3 spike = investigate
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Correction Sources</div>
         <div class="bar-list">
@@ -632,7 +744,6 @@
             </div>`).join('')}
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Correction Modes</div>
         <div class="bar-list">
@@ -672,7 +783,6 @@
           <span style="color:var(--fallback)">✗ ${d.layers.symspell.rejected}</span>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Ollama Layer</div>
         <div class="layer-card">
@@ -688,7 +798,6 @@
           <span style="color:var(--good)">✓ ${d.layers.ollama.accepted}</span>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Query Types</div>
         <div class="bar-list">
@@ -723,7 +832,6 @@
           </table>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title">Top Corrections — with Success Rate</div>
         <div class="table-wrap">
@@ -748,7 +856,7 @@
 
     // ── ROW 8: LOWEST SUCCESS RATE ────────────────────────
     if (c.lowestSuccessRate?.length > 0) {
-      html += `<div class="section-title">⚠️ Low Success Rate Corrections (needs attention)</div>
+      html += `<div class="section-title">⚠️ Low Success Rate Corrections</div>
       <div class="card" style="margin-bottom:16px">
         <div class="table-wrap">
           <table>
@@ -791,8 +899,7 @@
           </table>
         </div>
         <div style="margin-top:10px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">
-          Corrections learned from one client but penalised by another.
-          If this list grows → consider scope enforcement.
+          Corrections learned from one client but penalised by another. If this grows → consider scope enforcement.
         </div>
       </div>`;
     }
@@ -908,8 +1015,15 @@
     document.getElementById('content').innerHTML = html;
   }
 
+  // ── INIT ──────────────────────────────────────────────
+  loadActivity();
   loadAll();
+
+  // analytics refreshes every 30s ✅
   setInterval(loadAll, 30000);
+
+  // live activity refreshes every 10s ✅
+  setInterval(loadActivity, 10000);
 </script>
 </body>
 </html>
