@@ -245,7 +245,7 @@
   </div>
 
 <script>
-  const API = 'http://localhost:3000';
+  const API = window.location.origin;
   const KEY = 'searchapikey123';
 
   // ── LIVE ACTIVITY ──────────────────────────────────────
@@ -991,6 +991,55 @@
           : `<div style="color:var(--good);font-family:'DM Mono',monospace;font-size:0.8rem">✓ No weak result queries!</div>`}
       </div>
     </div>`;
+
+    // ── ROW 13b: TOP LEARNING OPPORTUNITIES ──────────────
+    // highest ROI operational view ✅
+    // tells you exactly what to feed offline learner next ✅
+    const zeroQueries = d.zeroResultQueries || [];
+    const weakQueries = d.weakResultQueries || [];
+    const opportunities = {};
+    zeroQueries.forEach(q => { opportunities[q] = (opportunities[q] || 0) + 3; });
+    weakQueries.forEach(q => { opportunities[q] = (opportunities[q] || 0) + 1; });
+    const topOpportunities = Object.entries(opportunities)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    if (topOpportunities.length > 0) {
+      html += `<div class="section-title">🎯 Top Learning Opportunities — feed these to offline learner</div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Query</th><th>Priority</th><th>Type</th><th>Action</th></tr></thead>
+            <tbody>
+              ${topOpportunities.map(([q, score], i) => {
+                const isZero = zeroQueries.includes(q);
+                return `<tr class="clickable" onclick="replayQuery('${q.replace(/'/g,"\\'")}')">
+                  <td style="color:var(--muted)">${i + 1}</td>
+                  <td>▶ ${q}</td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:${Math.round((score / topOpportunities[0][1]) * 80)}px;height:6px;
+                        background:${score >= 3 ? 'var(--fallback)' : 'var(--warn)'};border-radius:3px"></div>
+                      <span style="color:var(--muted);font-size:0.65rem">${score}pts</span>
+                    </div>
+                  </td>
+                  <td>
+                    ${isZero
+                      ? `<span class="badge badge-none" style="color:var(--fallback)">zero results</span>`
+                      : `<span class="badge badge-none" style="color:var(--warn)">weak results</span>`}
+                  </td>
+                  <td style="color:var(--muted);font-size:0.65rem">click to replay →</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted)">
+          zero result = 3pts · weak result = 1pt · run:
+          <span style="color:var(--accent)">node offlineLearner/index.js</span> to learn from these
+        </div>
+      </div>`;
+    }
 
     // ── ROW 14: SLOW QUERIES ──────────────────────────────
     if (d.slowQueries?.length > 0) {
