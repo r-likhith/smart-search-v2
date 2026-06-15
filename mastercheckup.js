@@ -780,6 +780,18 @@ async function runPhase5Checks() {
     serverSrc.includes('withTraffic'));
   check('sourcePerformance tracks neverUsed',
     serverSrc.includes('neverUsed'));
+  // recent activity endpoint ✅
+  check('recent-activity endpoint exists',
+    serverSrc.includes('/api/admin/recent-activity'));
+  check('readRecentActivity helper exists',
+    serverSrc.includes('readRecentActivity'));
+  check('buildWhyString helper exists',
+    serverSrc.includes('buildWhyString'));
+  check('recent-activity has filters',
+    serverSrc.includes('correctionOnly'));
+  check('recent-activity has layerBreakdown',
+    serverSrc.includes('layerBreakdown'));
+
 
   // ── Phase 4: scope context ────────────────────────────
   console.log('\n▸ Phase 4: Scope context');

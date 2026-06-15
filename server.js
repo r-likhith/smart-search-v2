@@ -82,10 +82,6 @@ function checkApiKey(req, res, next) {
 }
 
 // ─── SUCCESS RATE HELPER ──────────────────────────────────
-// successRate CONTRIBUTES to confidence ✅
-// not the same as confidence ✅
-// formula: (hitCount - failures) / hitCount ✅
-// requires sample size to be meaningful ✅
 
 function calcSuccessRate(hitCount, failures) {
   if (!hitCount || hitCount === 0) return null;
@@ -95,11 +91,6 @@ function calcSuccessRate(hitCount, failures) {
 }
 
 // ─── SOURCE PERFORMANCE HELPER ────────────────────────────
-// per-source quality breakdown ✅
-// answers: is groq producing quality vs symspell vs manual? ✅
-// only meaningful once entries have real traffic ✅
-// neverUsed = candidate entries with 0 hits ✅
-// withTraffic = entries that have been used at least once ✅
 
 function calcSourcePerformance(map) {
   const sources = ['manual', 'symspell', 'phonetic', 'groq', 'ollama', 'click'];
@@ -119,8 +110,8 @@ function calcSourcePerformance(map) {
 
     result[src] = {
       entries:        entries.length,
-      withTraffic:    withTraffic.length,      // used at least once ✅
-      avgSuccessRate: avgRate,                  // null until real traffic ✅
+      withTraffic:    withTraffic.length,
+      avgSuccessRate: avgRate,
       trusted:        entries.filter(e => e.status === 'trusted').length,
       proven:         entries.filter(e => e.status === 'proven').length,
       disabled:       entries.filter(e => e.status === 'disabled').length,
@@ -129,6 +120,82 @@ function calcSourcePerformance(map) {
   }
 
   return result;
+}
+
+// ─── RECENT ACTIVITY HELPER ───────────────────────────────
+// reads last N lines from analytics.log ✅
+// parses each line as JSON ✅
+// returns structured activity events ✅
+
+function readRecentActivity(logFile, limit = 50) {
+  try {
+    if (!fs.existsSync(logFile)) return [];
+
+    const content = fs.readFileSync(logFile, 'utf8');
+    const lines   = content.trim().split('\n').filter(Boolean);
+
+    // take last N lines ✅
+    const recent = lines.slice(-limit);
+
+    return recent
+      .map(line => {
+        try {
+          const e = JSON.parse(line);
+          return {
+            time:            e.ts ? new Date(e.ts).toLocaleTimeString('en', { hour12: false }) : null,
+            timestamp:       e.ts || null,
+            clientId:        e.clientId   || null,
+            query:           e.query      || null,
+            displayQuery:    e.correction?.applied ? e.correction.finalQuery : null,
+            correctionMode:  e.correctionMode  || 'none',
+            correctionSource:e.correction?.source !== 'none' ? e.correction?.source : null,
+            layer:           e.searchStage      || 'meilisearch',
+            hits:            e.results?.count   || 0,
+            isZeroResult:    e.results?.isZeroResult || false,
+            isFallback:      e.results?.isFallback   || false,
+            processingTime:  e.timing?.total    || 0,
+            latency:         e.timing?.latencyBucket || null,
+            corrected:       e.correction?.applied   || false,
+            saved:           e.learnedMap?.outcome === 'accepted' || false,
+            intentFilters:   Object.keys(e.intent?.filters || {}).length > 0
+                               ? e.intent.filters : null,
+            // what the system decided and why ✅
+            why: buildWhyString(e)
+          };
+        } catch { return null; }
+      })
+      .filter(Boolean)
+      .reverse(); // most recent first ✅
+
+  } catch (e) {
+    return [];
+  }
+}
+
+// ─── WHY STRING BUILDER ───────────────────────────────────
+// human-readable explanation of what the pipeline did ✅
+// this is the "wow" moment for observers ✅
+
+function buildWhyString(e) {
+  if (e.results?.isFallback) {
+    return 'No results found → showing popular products';
+  }
+  if (e.correction?.applied) {
+    const src   = e.correction.source || 'unknown';
+    const query = e.correction.finalQuery;
+    const hits  = e.results?.count || 0;
+    const saved = e.learnedMap?.outcome === 'accepted' ? ' → saved to learnedMap' : '';
+    return `"${e.query}" → "${query}" via ${src} → ${hits} results${saved}`;
+  }
+  if (e.intent?.filtersApplied) {
+    const filters = Object.entries(e.intent.filters || {})
+      .map(([k, v]) => `${k}=${v}`).join(', ');
+    return `Intent parsed: ${filters} → ${e.results?.count || 0} results`;
+  }
+  if (e.results?.count === 0) {
+    return `No results for "${e.query}" → no correction found`;
+  }
+  return `Direct search → ${e.results?.count || 0} results`;
 }
 
 // ─── SERVE FRONTENDS ──────────────────────────────────────
@@ -190,6 +257,91 @@ app.get('/api/analytics', checkApiKey, (req, res) => {
   }
 });
 
+// ─── ADMIN: RECENT ACTIVITY ───────────────────────────────
+// GET /api/admin/recent-activity ✅
+// returns last 50 search events ✅
+// structured with full decision context ✅
+// filterable by: clientId, layer, correctionOnly,
+//                zeroResultOnly, limit ✅
+// auto-refreshable — poll every 10s from dashboard ✅
+// the "wow" endpoint — shows system intelligence ✅
+
+app.get('/api/admin/recent-activity', checkApiKey, (req, res) => {
+  try {
+    const limit          = Math.min(parseInt(req.query.limit || '50'), 200);
+    const filterClient   = req.query.clientId   || null;
+    const filterLayer    = req.query.layer       || null;
+    const correctionOnly = req.query.correctionOnly === 'true';
+    const zeroResultOnly = req.query.zeroResultOnly === 'true';
+    const groqOnly       = req.query.groqOnly       === 'true';
+
+    // ── read from global log ──────────────────────────
+    // read more than limit to allow for filtering ✅
+    const LOG_FILE = path.join(__dirname, 'logs/analytics.log');
+    let events = readRecentActivity(LOG_FILE, limit * 3);
+
+    // ── also read per-client logs if clientId given ──
+    if (filterClient) {
+      const clientLog = path.join(
+        __dirname,
+        `multiTenantLogs/client_${filterClient}/analytics.log`
+      );
+      events = readRecentActivity(clientLog, limit * 3);
+    }
+
+    // ── apply filters ─────────────────────────────────
+    if (filterClient && !filterClient === null) {
+      events = events.filter(e => e.clientId === filterClient);
+    }
+    if (filterLayer) {
+      events = events.filter(e => e.layer === filterLayer);
+    }
+    if (correctionOnly) {
+      events = events.filter(e => e.corrected === true);
+    }
+    if (zeroResultOnly) {
+      events = events.filter(e => e.isZeroResult === true);
+    }
+    if (groqOnly) {
+      events = events.filter(e => e.correctionSource === 'groq');
+    }
+
+    // ── trim to requested limit ───────────────────────
+    events = events.slice(0, limit);
+
+    // ── summary stats ─────────────────────────────────
+    const summary = {
+      total:         events.length,
+      corrected:     events.filter(e => e.corrected).length,
+      zeroResults:   events.filter(e => e.isZeroResult).length,
+      fallbacks:     events.filter(e => e.isFallback).length,
+      avgLatency:    events.length > 0
+        ? Math.round(
+            events.reduce((a, e) => a + (e.processingTime || 0), 0) / events.length
+          )
+        : 0,
+      layerBreakdown: {
+        learnedmap:  events.filter(e => e.layer === 'learnedmap').length,
+        symspell:    events.filter(e => e.layer === 'symspell').length,
+        phonetic:    events.filter(e => e.layer === 'phonetic').length,
+        meilisearch: events.filter(e => e.layer === 'meilisearch').length,
+        fallback:    events.filter(e => e.layer === 'fallback').length
+      }
+    };
+
+    return res.json({
+      success:   true,
+      timestamp: new Date().toISOString(),
+      summary,
+      events
+    });
+
+  } catch (e) {
+    console.error('[Admin] Recent activity failed:', e.message);
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ─── DELTA SYNC STATUS ────────────────────────────────────
 
 app.get('/api/sync/status', checkApiKey, (req, res) => {
@@ -236,11 +388,6 @@ app.post('/api/sync/trigger', checkApiKey, (req, res) => {
 });
 
 // ─── ADMIN: RELOAD MAP ────────────────────────────────────
-// POST /api/admin/reload ✅
-// reloads learnedMap + suggestMap from disk ✅
-// no server restart needed ✅
-// call after offline learner runs ✅
-// call after manual learnedMap edits ✅
 
 app.post('/api/admin/reload', checkApiKey, (req, res) => {
   try {
@@ -271,14 +418,6 @@ app.post('/api/admin/reload', checkApiKey, (req, res) => {
 });
 
 // ─── ADMIN: CORRECTIONS DASHBOARD ────────────────────────
-// GET /api/admin/corrections ✅
-// read-only view of learnedMap health ✅
-// shows: stats, sourcePerformance, top corrections,
-//        groq candidates, disabled entries,
-//        cross-client risks, lowestSuccessRate ✅
-// successRate = (hitCount - failures) / hitCount ✅
-// successRate CONTRIBUTES to confidence ✅
-// not the same as confidence alone ✅
 
 app.get('/api/admin/corrections', checkApiKey, (req, res) => {
   try {
@@ -287,13 +426,8 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
       fs.readFileSync('./learned/learnedMap.json', 'utf8')
     );
 
-    // ── source performance ────────────────────────────
-    // per-source quality breakdown ✅
-    // key metric for evaluating groq vs symspell vs manual ✅
-    // avgSuccessRate = null until real traffic flows ✅
     const sourcePerformance = calcSourcePerformance(map);
 
-    // ── top corrections by hitCount ───────────────────
     const topCorrections = Object.entries(map)
       .filter(([, e]) => (e.hitCount || 0) > 0)
       .sort(([, a], [, b]) => (b.hitCount || 0) - (a.hitCount || 0))
@@ -312,8 +446,6 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
         promotedAt:  e.lastPromotedAt || null
       }));
 
-    // ── lowest successRate ────────────────────────────
-    // pruning candidates — entries below 80% with sample ≥ 5 ✅
     const lowestSuccessRate = Object.entries(map)
       .filter(([, e]) => (e.hitCount || 0) >= 5)
       .map(([key, e]) => ({
@@ -329,9 +461,6 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
       .sort((a, b) => (a.successRate || 100) - (b.successRate || 100))
       .slice(0, 10);
 
-    // ── groq candidates ───────────────────────────────
-    // pending real-world validation ✅
-    // status: candidate until real traffic promotes them ✅
     const groqCandidates = Object.entries(map)
       .filter(([, e]) => e.source === 'groq' && e.status === 'candidate')
       .map(([key, e]) => ({
@@ -342,7 +471,6 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
         firstSeen:  e.firstSeen || null
       }));
 
-    // ── disabled entries ──────────────────────────────
     const disabledEntries = Object.entries(map)
       .filter(([, e]) => e.status === 'disabled')
       .map(([key, e]) => ({
@@ -355,9 +483,6 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
         clicksSinceDisabled: e.clicksSinceDisabled || 0
       }));
 
-    // ── cross-client risks ────────────────────────────
-    // visibility only — no enforcement yet ✅
-    // grows = consider scope enforcement ✅
     const crossClientRisks = Object.entries(map)
       .filter(([, e]) =>
         e.lastPenalisedByClient &&
@@ -375,8 +500,6 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
         successRate:       calcSuccessRate(e.hitCount, e.failures)
       }));
 
-    // ── system-wide avgSuccessRate ────────────────────
-    // health signal — null until enough traffic ✅
     const allRates = Object.values(map)
       .filter(e => (e.hitCount || 0) >= 5)
       .map(e => calcSuccessRate(e.hitCount, e.failures))
@@ -401,7 +524,7 @@ app.get('/api/admin/corrections', checkApiKey, (req, res) => {
         highValue:         stats.highValueEntries,
         avgSuccessRate
       },
-      sourcePerformance,    // ← per-source quality ✅
+      sourcePerformance,
       topCorrections,
       lowestSuccessRate,
       groqCandidates,
@@ -440,8 +563,6 @@ process.on('SIGTERM', () => {
 });
 
 // ─── OLLAMA HEALTH CHECK ──────────────────────────────────
-// Ollama removed from search path ✅
-// kept for offline learner only ✅
 
 async function checkOllama() {
   try {
@@ -470,7 +591,6 @@ async function start() {
     await createIndexes();
     console.log('Meilisearch indexes ready');
 
-    // ─── LEARNEDMAP ───────────────────────────────────
     try {
       loadMap();
       const stats = getStats();
@@ -480,7 +600,6 @@ async function start() {
       console.warn('Continuing without learned map...');
     }
 
-    // ─── SUGGESTMAP ───────────────────────────────────
     try {
       loadSuggestMap();
       const suggestStats = getSuggestStats();
@@ -512,7 +631,6 @@ async function start() {
       console.warn('Continuing without build state...');
     }
 
-    // ─── SYMSPELL ─────────────────────────────────────
     try {
       await initSymSpell();
       await loadBrands(meiliClient);
@@ -521,7 +639,6 @@ async function start() {
       console.warn(`   Error: ${e.message}`);
     }
 
-    // ─── PHONETIC INDEX ───────────────────────────────
     try {
       buildPhoneticIndex();
     } catch (e) {
@@ -529,7 +646,6 @@ async function start() {
       console.warn(`   Error: ${e.message}`);
     }
 
-    // ─── FEATURE FLAGS ────────────────────────────────
     const features = require('./src/searchBanners/features');
     console.log('Feature flags:');
     console.log(`  retrievalCorrection:   ${features.retrievalCorrection}`);
@@ -538,10 +654,8 @@ async function start() {
     console.log(`  searchInsteadLink:     ${features.searchInsteadLink}`);
     console.log(`  silentInputCorrection: ${features.silentInputCorrection}`);
 
-    // ─── OLLAMA (offline only) ────────────────────────
     await checkOllama();
 
-    // ─── DELTA SYNC ───────────────────────────────────
     if (process.env.ENABLE_DELTA_SYNC === 'true') {
       try {
         require('./clientConnection/deltaSync');
@@ -572,6 +686,7 @@ async function start() {
       console.log(`POST /api/sync/trigger`);
       console.log(`POST /api/admin/reload`);
       console.log(`GET  /api/admin/corrections`);
+      console.log(`GET  /api/admin/recent-activity`);
       console.log(`\nPages:`);
       console.log(`GET  /              → Search UI`);
       console.log(`GET  /analytics     → Analytics Dashboard`);
