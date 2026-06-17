@@ -193,10 +193,10 @@ function renderResults(data) {
   // displayQuery = what to show user (cosmetic) ✅
   // wasCorrected = was retrieval corrected ✅
   // correctionMode = none/assisted/full ✅
-  const correctedQuery = data.correctedQuery;
-  const displayQuery   = data.displayQuery;
-  const wasCorrected   = data.wasCorrected;
-  const corrMode       = data.correctionMode || 'none';
+  var correctedQuery = data.correction?.correctedQuery  || null;
+  var displayQuery   = data.correction?.displayQuery    || null;
+  var wasCorrected   = data.correction?.applied         || false;
+  var corrMode       = data.correction?.correctionMode  || 'none';
 
   if (wasCorrected && correctedQuery) {
     // update search box with display query ✅
@@ -206,7 +206,7 @@ function renderResults(data) {
     el.className = 'correction-bar ' +
       (corrMode === 'full' ? 'correction-full' : 'correction-assisted');
 
-    const original = data.normalisedQuery || lastQuery;
+    var original = data.query?.normalised || lastQuery;
     el.innerHTML = corrMode === 'full'
       ? `✏️ Showing results for <strong>"${correctedQuery}"</strong>
          &nbsp;·&nbsp;
@@ -219,19 +219,21 @@ function renderResults(data) {
     el.style.display = 'flex';
   }
 
-  if (data.isFallback) {
+  if (data.meta?.isFallback) {
     const el = document.getElementById('fallback');
     el.textContent = '⚡ No exact results found — showing popular products from this store';
     el.style.display = 'block';
   }
 
   document.getElementById('meta-hits').textContent =
-    `${(data.totalHits || 0).toLocaleString()} results`;
+    (data.meta?.totalHits || 0).toLocaleString() + ' results';
   document.getElementById('meta-time').textContent =
-    `${data.processingTime || 0}ms`;
+    (data.meta?.processingTime || 0) + 'ms';
   document.getElementById('meta').style.display = 'flex';
 
-  const results = data.results || [];
+  var results = data.results || [];
+  // also fix isFallback check for empty state
+  var isFallback = data.meta?.isFallback || false;
 
   if (!results.length) {
     document.getElementById('results').innerHTML = `

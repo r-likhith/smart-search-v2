@@ -179,16 +179,16 @@ async function doSearch() {
 function renderResults(data) {
   if (!data) return;
 
-  var correctedQuery = data.correctedQuery;
-  var displayQuery   = data.displayQuery;
-  var wasCorrected   = data.wasCorrected;
-  var corrMode       = data.correctionMode || 'none';
+  var correctedQuery = data.correction?.correctedQuery  || null;
+  var displayQuery   = data.correction?.displayQuery    || null;
+  var wasCorrected   = data.correction?.applied         || false;
+  var corrMode       = data.correction?.correctionMode  || 'none';
 
   if (wasCorrected && correctedQuery) {
     if (displayQuery) qEl.value = displayQuery;
     var el = document.getElementById('correction');
     el.className = 'correction-bar ' + (corrMode === 'full' ? 'correction-full' : 'correction-assisted');
-    var original = data.normalisedQuery || lastQuery;
+    var original = data.query?.normalised || lastQuery;
     if (corrMode === 'full') {
       el.innerHTML = '\u270F\uFE0F Showing results for <strong>"' + correctedQuery + '"</strong>' +
         ' &nbsp;&middot;&nbsp; <span style="opacity:0.6">searched: <span style="text-decoration:line-through">' +
@@ -201,19 +201,21 @@ function renderResults(data) {
     el.style.display = 'flex';
   }
 
-  if (data.isFallback) {
+  if (data.meta?.isFallback) {
     var fb = document.getElementById('fallback');
     fb.textContent = '\u26A1 No exact results found — showing popular products from this store';
     fb.style.display = 'block';
   }
 
   document.getElementById('meta-hits').textContent =
-    (data.totalHits || 0).toLocaleString() + ' results';
+    (data.meta?.totalHits || 0).toLocaleString() + ' results';
   document.getElementById('meta-time').textContent =
-    (data.processingTime || 0) + 'ms';
+    (data.meta?.processingTime || 0) + 'ms';
   document.getElementById('meta').style.display = 'flex';
 
   var results = data.results || [];
+  // also fix isFallback check for empty state
+  var isFallback = data.meta?.isFallback || false;
 
   if (!results.length) {
     document.getElementById('results').innerHTML =
