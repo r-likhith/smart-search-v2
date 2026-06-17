@@ -109,8 +109,12 @@
     .badge-click { background:rgba(34,197,94,0.15); color:var(--good); }
     .badge-groq { background:rgba(255,107,53,0.15); color:var(--ollama); }
 
-    .tag-list { display:flex; flex-wrap:wrap; gap:6px; }
-    .tag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 10px; font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); cursor:pointer; transition:border-color 0.2s; }
+    /* ── tag-list: truncate long strings, no overflow ✅ */
+    .tag-list { display:flex; flex-wrap:wrap; gap:6px; overflow:hidden; }
+    .tag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 10px;
+           font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); cursor:pointer;
+           transition:border-color 0.2s; max-width:200px; overflow:hidden;
+           text-overflow:ellipsis; white-space:nowrap; display:inline-block; }
     .tag:hover { border-color:var(--accent); color:var(--text); }
     .tag.zero { border-color:rgba(255,68,102,0.3); color:var(--fallback); }
     .tag.weak { border-color:rgba(245,158,11,0.3); color:var(--warn); }
@@ -146,7 +150,7 @@
     .modal-overlay.open { display:flex; }
     .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:12px; width:100%; max-width:760px; margin:auto; }
     .modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
-    .modal-title { font-weight:700; font-size:1rem; }
+    .modal-title { font-weight:700; font-size:1rem; word-break:break-word; overflow:hidden; max-width:calc(100% - 40px); }
     .modal-close { background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer; padding:4px 8px; line-height:1; }
     .modal-close:hover { color:var(--text); }
     .modal-body { padding:20px; max-height:70vh; overflow-y:auto; }
@@ -158,7 +162,7 @@
     .step-name { font-weight:600; font-size:0.85rem; }
     .step-status { font-family:'DM Mono',monospace; font-size:0.65rem; }
     .step-time { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); margin-left:auto; }
-    .step-detail { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); }
+    .step-detail { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted); word-break:break-all; overflow-wrap:break-word; }
     .step-words { margin-top:4px; display:flex; gap:6px; flex-wrap:wrap; }
     .step-word { font-family:'DM Mono',monospace; font-size:0.65rem; background:rgba(0,200,255,0.1); color:var(--symspell); padding:2px 6px; border-radius:3px; }
     .step-results { margin-top:4px; font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); }
@@ -176,7 +180,8 @@
     .activity-meta { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); display:flex; align-items:center; gap:8px; }
     .activity-pulse { width:6px; height:6px; border-radius:50%; background:var(--good); animation:pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    .activity-row { display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid #1a1a1a; font-family:'DM Mono',monospace; font-size:0.72rem; }
+    .activity-row { display:flex; align-items:flex-start; gap:12px; padding:10px; border-bottom:1px solid #1a1a1a; font-family:'DM Mono',monospace; font-size:0.72rem; cursor:pointer; border-radius:4px; transition:background 0.15s; }
+    .activity-row:hover { background:var(--accent-dim); }
     .activity-row:last-child { border-bottom:none; }
     .activity-time { color:var(--muted); flex-shrink:0; width:60px; padding-top:2px; }
     .activity-query { font-weight:600; flex-shrink:0; width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -202,7 +207,7 @@
 
   <div class="replay-bar">
     <input class="replay-input" id="replay-input" type="text"
-      placeholder="Type any query to replay pipeline... e.g. leggigns"
+      placeholder="Type any query to replay pipeline... e.g. labtop"
       onkeydown="if(event.key==='Enter') replayQuery(this.value)" />
     <button class="replay-btn" onclick="replayQuery(document.getElementById('replay-input').value)">▶ Replay</button>
   </div>
@@ -248,6 +253,11 @@
   const API = window.location.origin;
   const KEY = 'searchapikey123';
 
+  // ── SILENT REFRESH STATE ──────────────────────────────
+  // tracks last known state to avoid unnecessary re-renders ✅
+  let lastActivityHash   = '';
+  let lastAnalyticsHash  = '';
+
   // ── LIVE ACTIVITY ──────────────────────────────────────
 
   let activityFilter = 'all';
@@ -256,6 +266,7 @@
     activityFilter = filter;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    lastActivityHash = ''; // force refresh on filter change ✅
     loadActivity();
   }
 
@@ -268,7 +279,8 @@
     ollama:      'var(--ollama)'
   };
 
-  async function loadActivity() {
+  // silent=true → only update if data changed, no spinner ✅
+  async function loadActivity(silent = false) {
     try {
       const params = new URLSearchParams({ limit: '20' });
       if (activityFilter === 'corrections') params.set('correctionOnly', 'true');
@@ -280,12 +292,19 @@
       const json = await res.json();
 
       if (!json.events || json.events.length === 0) {
-        document.getElementById('activity-panel').innerHTML =
-          `<div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.8rem;padding:20px 0">
-            No activity yet — run some searches first
-          </div>`;
+        if (!silent) {
+          document.getElementById('activity-panel').innerHTML =
+            `<div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:0.8rem;padding:20px 0">
+              No activity yet — run some searches first
+            </div>`;
+        }
         return;
       }
+
+      // ── silent: skip render if nothing changed ✅
+      const newHash = json.events.map(e => e.timestamp).join(',');
+      if (silent && newHash === lastActivityHash) return;
+      lastActivityHash = newHash;
 
       const s = json.summary;
       const corrRate = s.total > 0 ? Math.round(s.corrected / s.total * 100) : 0;
@@ -310,7 +329,9 @@
         const layerColor = LAYER_COLOR[e.layer] || 'var(--muted)';
         const latColor = e.processingTime < 100 ? 'var(--good)'
           : e.processingTime < 500 ? 'var(--warn)' : 'var(--fallback)';
-        return `<div class="activity-row">
+        const safeQuery = (e.query||'').replace(/'/g,"\\'");
+        const safeTs    = (e.timestamp||'').replace(/'/g,"\\'");
+        return `<div class="activity-row" onclick="replayQueryAt('${safeQuery}','${safeTs}')" title="Click to replay this exact event">
           <div class="activity-time">${e.time || '—'}</div>
           <div class="activity-query" title="${e.query}">${e.query}</div>
           <div class="activity-layer">
@@ -334,10 +355,12 @@
         new Date().toLocaleTimeString('en', { hour12: false });
 
     } catch(e) {
-      document.getElementById('activity-panel').innerHTML =
-        `<div style="color:var(--fallback);font-family:'DM Mono',monospace;font-size:0.8rem;padding:20px 0">
-          Failed to load: ${e.message}
-        </div>`;
+      if (!silent) {
+        document.getElementById('activity-panel').innerHTML =
+          `<div style="color:var(--fallback);font-family:'DM Mono',monospace;font-size:0.8rem;padding:20px 0">
+            Failed to load: ${e.message}
+          </div>`;
+      }
     }
   }
 
@@ -353,15 +376,6 @@
     same_as_original:'⊘', changed:'✏️', pending:'⏳'
   };
 
-  const SOURCE_COLOR = {
-    manual:   'var(--learnedmap)',
-    symspell: 'var(--symspell)',
-    phonetic: 'var(--phonetic)',
-    groq:     'var(--ollama)',
-    ollama:   'var(--ollama)',
-    click:    'var(--good)'
-  };
-
   function handleModalClick(e) {
     if (e.target === document.getElementById('replay-modal')) closeModal();
   }
@@ -369,20 +383,80 @@
     document.getElementById('replay-modal').classList.remove('open');
   }
   function openModal(title) {
-    document.getElementById('modal-title').textContent = title;
+    const maxTitle = 60;
+    document.getElementById('modal-title').textContent =
+      title.length > maxTitle ? title.slice(0, maxTitle) + '…' : title;
     document.getElementById('modal-body').innerHTML =
       `<div class="loading"><div class="spinner"></div><br>Loading pipeline trace...</div>`;
     document.getElementById('replay-modal').classList.add('open');
   }
 
+  // ── replay latest event for query ✅
+  // used by: problem queries, top queries, learning opportunities ✅
+  // ?latest=true → aggregator returns only most recent event ✅
   async function replayQuery(query) {
     query = (query || '').trim();
     if (!query) return;
     document.getElementById('replay-input').value = query;
     openModal(`Pipeline Replay: "${query}"`);
     try {
-      const res = await fetch(`${API}/api/analytics/replay?q=${encodeURIComponent(query)}`,
-        { headers: { 'x-api-key': KEY } });
+      const res = await fetch(
+        `${API}/api/analytics/replay?q=${encodeURIComponent(query)}&latest=true`,
+        { headers: { 'x-api-key': KEY } }
+      );
+      const json = await res.json();
+      if (!json.data || json.data.length === 0) {
+        document.getElementById('modal-body').innerHTML =
+          `<div class="empty">No replay data found for "${query}"<br><br>Search for this query first.</div>`;
+        return;
+      }
+      document.getElementById('modal-body').innerHTML =
+        json.data.map((e, i) => renderEntry(e, i, json.data.length)).join('');
+    } catch(e) {
+      document.getElementById('modal-body').innerHTML =
+        `<div class="empty">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  // ── replay specific event by timestamp ✅
+  // used by: Live Activity rows ✅
+  // passes exact ts → aggregator finds that one event ✅
+  async function replayQueryAt(query, ts) {
+    query = (query || '').trim();
+    if (!query) return;
+    document.getElementById('replay-input').value = query;
+    const timeLabel = ts ? new Date(ts).toLocaleTimeString('en', { hour12: false }) : '?';
+    openModal(`Pipeline Replay: "${query}" @ ${timeLabel}`);
+    try {
+      const url = ts
+        ? `${API}/api/analytics/replay?q=${encodeURIComponent(query)}&ts=${encodeURIComponent(ts)}`
+        : `${API}/api/analytics/replay?q=${encodeURIComponent(query)}&latest=true`;
+      const res  = await fetch(url, { headers: { 'x-api-key': KEY } });
+      const json = await res.json();
+      if (!json.data || json.data.length === 0) {
+        document.getElementById('modal-body').innerHTML =
+          `<div class="empty">No replay data found for "${query}"<br><br>Search for this query first.</div>`;
+        return;
+      }
+      document.getElementById('modal-body').innerHTML =
+        json.data.map((e, i) => renderEntry(e, i, json.data.length)).join('');
+    } catch(e) {
+      document.getElementById('modal-body').innerHTML =
+        `<div class="empty">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  // ── replay bar: show all past events for deep analysis ✅
+  async function replayQueryAll(query) {
+    query = (query || '').trim();
+    if (!query) return;
+    document.getElementById('replay-input').value = query;
+    openModal(`Pipeline Replay: "${query}" (all events)`);
+    try {
+      const res = await fetch(
+        `${API}/api/analytics/replay?q=${encodeURIComponent(query)}`,
+        { headers: { 'x-api-key': KEY } }
+      );
       const json = await res.json();
       if (!json.data || json.data.length === 0) {
         document.getElementById('modal-body').innerHTML =
@@ -451,9 +525,21 @@
     </div>`;
   }
 
+  // ── manual refresh (button) always re-renders ✅
   async function loadAll() {
     document.getElementById('content').innerHTML =
       `<div class="loading"><div class="spinner"></div><br>Loading analytics...</div>`;
+    lastAnalyticsHash = ''; // force full re-render ✅
+    await loadAllData();
+  }
+
+  // ── silent background refresh ✅
+  // only re-renders if totalSearches or correctionApplied changed ✅
+  async function loadAllSilent() {
+    await loadAllData(true);
+  }
+
+  async function loadAllData(silent = false) {
     try {
       const [analyticsRes, correctionsRes] = await Promise.all([
         fetch(`${API}/api/analytics`,         { headers: { 'x-api-key': KEY } }),
@@ -463,14 +549,25 @@
       const corrections = await correctionsRes.json();
 
       if (!analytics.data) {
-        document.getElementById('content').innerHTML =
-          `<div class="empty">No analytics data yet.<br>Run some searches first!</div>`;
+        if (!silent) {
+          document.getElementById('content').innerHTML =
+            `<div class="empty">No analytics data yet.<br>Run some searches first!</div>`;
+        }
         return;
       }
+
+      // ── silent: skip render if summary unchanged ✅
+      const newHash = `${analytics.data.summary.totalSearches}-${analytics.data.summary.correctionApplied}`;
+      if (silent && newHash === lastAnalyticsHash) return;
+      lastAnalyticsHash = newHash;
+
       render(analytics.data, corrections.data || corrections);
     } catch(e) {
-      document.getElementById('content').innerHTML =
-        `<div class="empty">Failed to load: ${e.message}</div>`;
+      if (!silent) {
+        console.error('loadAll error:', e);
+        document.getElementById('content').innerHTML =
+          `<div class="empty">Failed to load: ${e.message}<br><small style="color:var(--muted)">${e.stack?.split('\n')[1]||''}</small></div>`;
+      }
     }
   }
 
@@ -478,6 +575,12 @@
 
   function badge(source) {
     return `<span class="badge badge-${source || 'none'}">${source || 'none'}</span>`;
+  }
+
+  // ── truncate long query strings for tags ✅
+  function truncate(str, max = 28) {
+    const s = String(str);
+    return s.length > max ? s.slice(0, max) + '…' : s;
   }
 
   function stageColor(stage) {
@@ -813,8 +916,8 @@
       </div>
     </div>`;
 
-    // ── ROW 7: TOP CORRECTIONS ────────────────────────────
-    html += `<div class="section-title">Top Queries — click to replay pipeline</div>
+    // ── ROW 7: TOP QUERIES + CORRECTIONS ─────────────────
+    html += `<div class="section-title">Top Queries — click to replay latest pipeline</div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-title">Most Searched</div>
@@ -838,13 +941,13 @@
           <table>
             <thead><tr><th>#</th><th>Correction</th><th>Hits</th><th>Success%</th><th>Status</th></tr></thead>
             <tbody>
-              ${(c.topCorrections || []).slice(0,10).map((item, i) => `
+              ${(c.topCorrections || []).filter(item => item && item.query != null).slice(0,10).map((item, i) => `
                 <tr>
                   <td style="color:var(--muted)">${i+1}</td>
                   <td>${item.query} → <span style="color:var(--accent)">${item.correction}</span></td>
-                  <td>${item.hitCount}</td>
+                  <td>${item.hitCount || 0}</td>
                   <td style="color:${srColor(item.successRate)}">
-                    ${item.successRate !== null ? item.successRate + '%' : '—'}
+                    ${item.successRate !== null && item.successRate !== undefined ? item.successRate + '%' : '—'}
                   </td>
                   <td>${badge(item.status)}</td>
                 </tr>`).join('')}
@@ -972,34 +1075,35 @@
     }
 
     // ── ROW 13: PROBLEM QUERIES ───────────────────────────
+    // tags truncated to 28 chars ✅ no horizontal overflow ✅
     html += `<div class="section-title">Problem Queries</div>
     <div class="grid grid-2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-title">Zero Result Queries — click to replay</div>
         ${d.zeroResultQueries?.length > 0
-          ? `<div class="tag-list">${d.zeroResultQueries.map(q =>
-              `<span class="tag zero" onclick="replayQuery('${q.replace(/'/g,"\\'")}')">${q}</span>`
-            ).join('')}</div>`
+          ? `<div class="tag-list">${d.zeroResultQueries.map(q => {
+              const raw = String(q.query||q);
+              return `<span class="tag zero" title="${raw}" onclick="replayQuery('${raw.replace(/'/g,"\\'")}')">${truncate(raw)}</span>`;
+            }).join('')}</div>`
           : `<div style="color:var(--good);font-family:'DM Mono',monospace;font-size:0.8rem">✓ No zero result queries!</div>`}
       </div>
       <div class="card">
         <div class="card-title">Weak Result Queries — click to replay</div>
         ${d.weakResultQueries?.length > 0
-          ? `<div class="tag-list">${d.weakResultQueries.map(q =>
-              `<span class="tag weak" onclick="replayQuery('${q.replace(/'/g,"\\'")}')">${q}</span>`
-            ).join('')}</div>`
+          ? `<div class="tag-list">${d.weakResultQueries.map(q => {
+              const raw = String(q.query||q);
+              return `<span class="tag weak" title="${raw}" onclick="replayQuery('${raw.replace(/'/g,"\\'")}')">${truncate(raw)}</span>`;
+            }).join('')}</div>`
           : `<div style="color:var(--good);font-family:'DM Mono',monospace;font-size:0.8rem">✓ No weak result queries!</div>`}
       </div>
     </div>`;
 
     // ── ROW 13b: TOP LEARNING OPPORTUNITIES ──────────────
-    // highest ROI operational view ✅
-    // tells you exactly what to feed offline learner next ✅
     const zeroQueries = d.zeroResultQueries || [];
     const weakQueries = d.weakResultQueries || [];
     const opportunities = {};
-    zeroQueries.forEach(q => { opportunities[q] = (opportunities[q] || 0) + 3; });
-    weakQueries.forEach(q => { opportunities[q] = (opportunities[q] || 0) + 1; });
+    zeroQueries.forEach(q => { const k=q.query||q; opportunities[k] = (opportunities[k] || 0) + 3; });
+    weakQueries.forEach(q => { const k=q.query||q; opportunities[k] = (opportunities[k] || 0) + 1; });
     const topOpportunities = Object.entries(opportunities)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
@@ -1012,10 +1116,10 @@
             <thead><tr><th>#</th><th>Query</th><th>Priority</th><th>Type</th><th>Action</th></tr></thead>
             <tbody>
               ${topOpportunities.map(([q, score], i) => {
-                const isZero = zeroQueries.includes(q);
-                return `<tr class="clickable" onclick="replayQuery('${q.replace(/'/g,"\\'")}')">
+                const isZero = zeroQueries.some(z => (z.query||z) === q);
+                return `<tr class="clickable" onclick="replayQuery('${String(q).replace(/'/g,"\\'")}')">
                   <td style="color:var(--muted)">${i + 1}</td>
-                  <td>▶ ${q}</td>
+                  <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${q}">▶ ${truncate(q, 32)}</td>
                   <td>
                     <div style="display:flex;align-items:center;gap:8px">
                       <div style="width:${Math.round((score / topOpportunities[0][1]) * 80)}px;height:6px;
@@ -1050,7 +1154,7 @@
             <thead><tr><th>Query</th><th>Time</th><th>Stage</th></tr></thead>
             <tbody>
               ${d.slowQueries.map(q => `
-                <tr class="clickable" onclick="replayQuery('${q.query.replace(/'/g,"\\'")}')" >
+                <tr class="clickable" onclick="replayQuery('${q.query.replace(/'/g,"\\'")}')">
                   <td>▶ ${q.query}</td>
                   <td style="color:var(--fallback)">${q.time}ms</td>
                   <td>${badge(q.stage)}</td>
@@ -1068,11 +1172,11 @@
   loadActivity();
   loadAll();
 
-  // analytics refreshes every 30s ✅
-  setInterval(loadAll, 30000);
-
-  // live activity refreshes every 10s ✅
-  setInterval(loadActivity, 10000);
+  // ── silent auto-refresh ✅
+  // activity: every 10s — only updates if new events ✅
+  // analytics: every 30s — only re-renders if counts changed ✅
+  setInterval(() => loadActivity(true), 10000);
+  setInterval(loadAllSilent, 30000);
 </script>
 </body>
 </html>

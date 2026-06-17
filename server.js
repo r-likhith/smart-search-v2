@@ -215,14 +215,17 @@ app.use('/demos', express.static(path.join(__dirname, 'demos')));
 app.get('/api/analytics/replay', checkApiKey, (req, res) => {
   try {
     const query = (req.query.q || '').trim();
+    const ts    = (req.query.ts || '').trim() || null;
     if (!query) {
       return res.status(400).json({ success: false, error: 'Query parameter ?q= is required' });
     }
-    const data = replayQuery(query);
+    const latest = req.query.latest === 'true';
+    const data   = replayQuery(query, ts, latest);
     return res.json({
       success: true,
       timestamp: new Date().toISOString(),
       query,
+      ts: ts || null,
       count: data.length,
       data
     });

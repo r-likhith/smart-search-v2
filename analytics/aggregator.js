@@ -161,17 +161,21 @@ function aggregate(clientId = null) {
     .map(([query, count]) => ({ query, count }));
 
   // ── top corrections ───────────────────────────────────
+  // returns {query, correction, count} objects ✅
   const correctionCounts = {};
   for (const e of entries) {
     if (e.correction?.applied && e.correction?.finalQuery) {
-      const key = `${e.query} → ${e.correction.finalQuery}`;
+      const key = `${e.query}||${e.correction.finalQuery}`;
       correctionCounts[key] = (correctionCounts[key] || 0) + 1;
     }
   }
   const topCorrections = Object.entries(correctionCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20)
-    .map(([correction, count]) => ({ correction, count }));
+    .map(([key, count]) => {
+      const [query, correction] = key.split('||');
+      return { query, correction, count };
+    });
 
   // ── zero result queries with frequency ────────────────
   const zeroResultCounts = {};
@@ -300,17 +304,30 @@ function aggregate(clientId = null) {
 }
 
 // ─── QUERY REPLAY ─────────────────────────────────────────
+// ts parameter: if provided → return only that specific event ✅
+// ts parameter: if null → return last 10 events for query ✅
 
-function replayQuery(query) {
+function replayQuery(query, ts = null, latest = false) {
   const entries = readEntries();
   if (!query) return [];
 
   const lower = query.toLowerCase().trim();
 
-  const matches = entries
+  let matches = entries
     .filter(e => e.query?.toLowerCase() === lower)
-    .sort((a, b) => new Date(b.ts) - new Date(a.ts))
-    .slice(0, 10);
+    .sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  // if ts provided → find exact event ✅
+  if (ts) {
+    const exact = matches.find(e => e.ts === ts);
+    if (exact) matches = [exact];
+    else matches = matches.slice(0, 1); // fallback to most recent ✅
+  } else if (latest) {
+    matches = matches.slice(0, 1); // most recent only ✅
+  } else {
+    matches = matches.slice(0, 10);
+  }
+
 
   return matches.map(e => ({
     ts:         e.ts,
