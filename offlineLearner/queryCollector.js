@@ -119,8 +119,22 @@ function collectQueries() {
     // skip very short queries ✅
     if (query.length < 3) continue;
 
+    // skip very long queries — stress tests / spam ✅
+    if (query.length > 60) continue;
+
     // skip numeric only ✅
     if (/^\d+$/.test(query)) continue;
+
+    // skip JS/SQL injection artifacts ✅
+    if (/null|undefined|true|false|select\s*\*|<script/i.test(query)) continue;
+
+    // skip repeated words — "laptop laptop laptop" ✅
+    const words = query.split(/\s+/);
+    const uniqueWords = new Set(words);
+    if (words.length > 2 && uniqueWords.size === 1) continue;
+
+    // skip pure special chars / symbols ✅
+    if (/^[^a-z0-9]+$/i.test(query)) continue;
 
     const clients   = [...(queryClients[query]   || [])];
     const firstSeen = queryFirstSeen[query]       || null;
