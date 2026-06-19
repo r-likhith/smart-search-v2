@@ -7,6 +7,19 @@ const { onBuildComplete, getBuildState } = require('./buildState');
 const MIN_CLICKS_TO_LEARN = 5;
 const DOMINANCE_THRESHOLD = 0.6;
 
+// ── SAFETY RULES ──────────────────────────────────────────
+// Rule 1+2: only learn from failed/weak queries ✅
+// clicks on successful queries = preference, not correction ✅
+// "watch" 104 results → preference signal ❌ don't learn
+// "ear ringzz" 0 results → correction signal ✅ learn
+const MAX_RESULTS_TO_LEARN = 5;
+
+// Rule 4: clean single words are preferences not typos ✅
+// "watch", "phone", "ac" → preference signals ❌
+// "ear ringzz", "labtop", "iphonne" → typo corrections ✅
+// regex: 2-10 lowercase letters only, no spaces, no digits
+const CLEAN_SINGLE_WORD = /^[a-z]{2,10}$/;
+
 // global build lock
 let isBuilding = false;
 
@@ -56,17 +69,19 @@ async function buildCorrections() {
         count,
         dominance,
         category,
-        subcategory
+        subcategory,
+        originalResultCount,
+        uniqueCategories
       } = item;
 
-      // double enforce min clicks
+      // ── double enforce min clicks ──────────────────────
       if (count < MIN_CLICKS_TO_LEARN) {
         console.log(`[Skip] "${query}" — not enough clicks (${count})`);
         skipped++;
         continue;
       }
 
-      // dominance filter
+      // ── dominance filter ──────────────────────────────
       if (dominance < DOMINANCE_THRESHOLD) {
         console.log(`[Skip] "${query}" → "${correction}" low dominance (${dominance})`);
         skipped++;
@@ -74,6 +89,36 @@ async function buildCorrections() {
       }
 
       if (!query || !correction) {
+        skipped++;
+        continue;
+      }
+
+      // ── Rule 1+2: skip successful queries ─────────────
+      // if query already returned good results → it's a
+      // preference signal, not a correction ✅
+      // only learn from failed/weak queries ✅
+      if (originalResultCount !== undefined && originalResultCount > MAX_RESULTS_TO_LEARN) {
+        console.log(`[Skip] "${query}" — had ${originalResultCount} results (preference not correction)`);
+        skipped++;
+        continue;
+      }
+
+      // ── Rule 3: skip ambiguous multi-category clicks ──
+      // user clicked across multiple categories → ambiguous
+      // intent → unsafe to learn ✅
+      if (uniqueCategories !== undefined && uniqueCategories > 1) {
+        console.log(`[Skip] "${query}" — clicks across ${uniqueCategories} categories (ambiguous intent)`);
+        skipped++;
+        continue;
+      }
+
+      // ── Rule 4: skip clean single words ───────────────
+      // "watch", "phone", "ac" → these are preferences ✅
+      // "ear ringzz", "labtop" → these are typos ✅
+      // clean single words with no special chars =
+      // likely preference not correction ✅
+      if (CLEAN_SINGLE_WORD.test(query.trim())) {
+        console.log(`[Skip] "${query}" — clean single word (preference not typo)`);
         skipped++;
         continue;
       }
@@ -90,7 +135,7 @@ async function buildCorrections() {
         continue;
       }
 
-      // use subcategory → category → correction keyword
+      // ── use subcategory → category → correction keyword
       const finalCorrection = normalise(
         subcategory || category || correction
       );
@@ -101,7 +146,7 @@ async function buildCorrections() {
         continue;
       }
 
-      // prevent circular loops
+      // ── prevent circular loops ────────────────────────
       if (
         normalise(finalCorrection).includes(normalise(query)) ||
         normalise(query).includes(normalise(finalCorrection))
@@ -111,7 +156,7 @@ async function buildCorrections() {
         continue;
       }
 
-      // skip if already learned correctly
+      // ── skip if already learned correctly ─────────────
       const existing = applyCorrection(query);
       if (existing.corrected && existing.query === finalCorrection) {
         console.log(`[Skip] "${query}" → "${finalCorrection}" already learned`);
@@ -122,9 +167,10 @@ async function buildCorrections() {
       console.log(`[Build] "${query}" → "${finalCorrection}"`);
       console.log(`        clicks: ${count}, dominance: ${dominance}`);
       console.log(`        category: ${category || 'unknown'}`);
+      console.log(`        originalResults: ${originalResultCount ?? 'unknown'}`);
 
-      // weight confidence by dominance
-      // strong patterns (dominance 1.0) learn faster than weak (0.6)
+      // weight confidence by dominance ✅
+      // strong patterns (dominance 1.0) learn faster ✅
       const dominanceWeight = Math.min(0.25, dominance * 0.15);
 
       try {
@@ -143,8 +189,8 @@ async function buildCorrections() {
       }
     }
 
-    // only reset state when something was actually built
-    // preserves click signal when everything was skipped
+    // only reset state when something was actually built ✅
+    // preserves click signal when everything was skipped ✅
     if (built > 0) {
       onBuildComplete();
     }
@@ -161,7 +207,7 @@ async function buildCorrections() {
 
   } catch (err) {
     console.error('Builder failed:', err.message);
-    // never update state on failure
+    // never update state on failure ✅
     return { built: 0, skipped: 0, error: err.message };
   }
 }
@@ -185,6 +231,8 @@ function showPending() {
     const finalCorrection = item.subcategory || item.category || item.correction;
     console.log(`"${item.query}" → "${finalCorrection}"`);
     console.log(`  clicks: ${item.count}, dominance: ${item.dominance}`);
+    console.log(`  originalResults: ${item.originalResultCount ?? 'unknown'}`);
+    console.log(`  uniqueCategories: ${item.uniqueCategories ?? 'unknown'}`);
     console.log('');
   });
 

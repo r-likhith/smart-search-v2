@@ -101,7 +101,8 @@ const API_KEY   = 'searchapikey123';
 const qEl    = document.getElementById('q');
 const sugsEl = document.getElementById('suggestions');
 let sugTimer      = null;
-let lastQuery     = '';
+let lastQuery       = '';
+let lastResultCount = 0;
 let feedbackTimer = null;
 
 qEl.addEventListener('input', () => {
@@ -213,6 +214,7 @@ function renderResults(data) {
     (data.meta?.processingTime || 0) + 'ms';
   document.getElementById('meta').style.display = 'flex';
 
+  lastResultCount = data.meta?.totalHits || 0;
   var results = data.results || [];
   // also fix isFallback check for empty state
   var isFallback = data.meta?.isFallback || false;
@@ -260,11 +262,12 @@ async function recordClick(productId, productName, category) {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
       body:    JSON.stringify({
-        query:       lastQuery,
-        productId:   productId,
-        productName: productName,
-        category:    category,
-        clientId:    CLIENT_ID
+        query:               lastQuery,
+        productId:           productId,
+        productName:         productName,
+        category:            category,
+        clientId:            CLIENT_ID,
+        originalResultCount: lastResultCount  // ← new ✅
       })
     });
   } catch(e) {}

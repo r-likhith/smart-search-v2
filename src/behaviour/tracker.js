@@ -41,24 +41,20 @@ function loadClicks() {
 }
 
 // ─── EXTRACT CORRECTION KEYWORD ───────────────────────────
-// Returns correction (clean word) + aggregationKey (collision-safe)
 
 function extractCorrectionKeyword(productName, category, subcategory) {
-  // Fix 3 — last 2 meaningful words as fallback
   const fallback = normalise(productName)
     .split(' ')
     .filter(w => w.length > 3)
     .slice(-2)
     .join(' ') || normalise(productName);
 
-  // clean correction word for learnedMap
   const correction = subcategory
     ? normalise(subcategory)
     : category
     ? normalise(category)
     : fallback;
 
-  // Fix 4 — composite key prevents collision
   const aggregationKey = subcategory && category
     ? `${normalise(subcategory)}::${normalise(category)}`
     : correction;
@@ -76,7 +72,8 @@ function recordClick(data) {
       productName,
       category,
       subcategory,
-      requestId
+      requestId,
+      originalResultCount  // ← new: how many results query returned ✅
     } = data;
 
     if (!query || !productId) {
@@ -99,20 +96,17 @@ function recordClick(data) {
       return { recorded: false, reason: 'duplicate' };
     }
 
-    // Fix 1 — isFirst = unique query+product combination ever
     const isFirst = !clickData.raw.some(c =>
       c.normalised === normalisedQuery &&
       c.productId === productId
     );
 
-    // Fix 3 + 4 — extract both correction and aggregation key
     const { correction, aggregationKey } = extractCorrectionKeyword(
       productName || '',
       category,
       subcategory
     );
 
-    // store rich click data
     const click = {
       query,
       normalised: normalisedQuery,
@@ -120,32 +114,32 @@ function recordClick(data) {
       productName: productName || '',
       correction,
       aggregationKey,
-      category: category || null,
-      subcategory: subcategory || null,
-      timestamp: new Date().toISOString(),
-      requestId: requestId || null,
+      category:             category             || null,
+      subcategory:          subcategory          || null,
+      originalResultCount:  originalResultCount  ?? null, // ← stored ✅
+      timestamp:            new Date().toISOString(),
+      requestId:            requestId            || null,
       isFirst
     };
 
-    // limit raw clicks size
     if (clickData.raw.length >= MAX_RAW_CLICKS) {
       clickData.raw.shift();
     }
     clickData.raw.push(click);
 
-    // update aggregation
     updateAggregation(
       normalisedQuery,
       correction,
       aggregationKey,
       category,
       subcategory,
-      isFirst
+      isFirst,
+      originalResultCount ?? null  // ← passed through ✅
     );
 
     saveClicks();
 
-    console.log(`[Click] Recorded: "${query}" → "${correction}" (key: ${aggregationKey}, first: ${isFirst})`);
+    console.log(`[Click] Recorded: "${query}" → "${correction}" (results: ${originalResultCount ?? '?'}, first: ${isFirst})`);
 
     // ─── HYBRID AUTO-BUILD TRIGGER ────────────────────────
     try {
@@ -179,7 +173,8 @@ function updateAggregation(
   aggregationKey,
   category,
   subcategory,
-  isFirst
+  isFirst,
+  originalResultCount  // ← new ✅
 ) {
   try {
     if (!clickData.aggregated[normalisedQuery]) {
@@ -190,18 +185,36 @@ function updateAggregation(
 
     if (!queryAgg[aggregationKey]) {
       queryAgg[aggregationKey] = {
-        count: 0,
+        count:               0,
         correction,
-        category: category || null,
-        subcategory: subcategory || null,
-        lastSeen: null
+        category:            category    || null,
+        subcategory:         subcategory || null,
+        originalResultCount: originalResultCount ?? null, // ← stored ✅
+        categories:          {},  // ← track all clicked categories ✅
+        lastSeen:            null
       };
     }
 
-    // Fix 1 — only unique clicks count
+    // only unique clicks count ✅
     if (isFirst) {
       queryAgg[aggregationKey].count++;
+
+      // track unique categories clicked ✅
+      // used by builder Rule 3: multi-category = ambiguous ✅
+      if (category) {
+        queryAgg[aggregationKey].categories[category] =
+          (queryAgg[aggregationKey].categories[category] || 0) + 1;
+      }
+
+      // update originalResultCount with first recorded value ✅
+      if (
+        originalResultCount !== null &&
+        queryAgg[aggregationKey].originalResultCount === null
+      ) {
+        queryAgg[aggregationKey].originalResultCount = originalResultCount;
+      }
     }
+
     queryAgg[aggregationKey].lastSeen = new Date().toISOString();
 
   } catch (err) {
@@ -228,13 +241,15 @@ function getLearnableCorrections() {
       ) {
         corrections.push({
           query,
-          correction: data.correction || aggregationKey.split('::')[0],
+          correction:          data.correction || aggregationKey.split('::')[0],
           aggregationKey,
-          count: data.count,
-          dominance: parseFloat(dominance.toFixed(2)),
-          category: data.category,
-          subcategory: data.subcategory,
-          lastSeen: data.lastSeen
+          count:               data.count,
+          dominance:           parseFloat(dominance.toFixed(2)),
+          category:            data.category,
+          subcategory:         data.subcategory,
+          originalResultCount: data.originalResultCount ?? null,   // ← exposed ✅
+          uniqueCategories:    Object.keys(data.categories || {}).length, // ← exposed ✅
+          lastSeen:            data.lastSeen
         });
       }
     }
@@ -272,10 +287,10 @@ function saveClicks() {
 function getClickStats() {
   const learnable = getLearnableCorrections();
   return {
-    totalRawClicks: clickData.raw.length,
-    uniqueQueries: Object.keys(clickData.aggregated).length,
+    totalRawClicks:       clickData.raw.length,
+    uniqueQueries:        Object.keys(clickData.aggregated).length,
     learnableCorrections: learnable.length,
-    topCorrections: learnable.slice(0, 5)
+    topCorrections:       learnable.slice(0, 5)
   };
 }
 

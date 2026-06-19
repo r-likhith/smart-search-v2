@@ -17,7 +17,8 @@ router.post('/click', async (req, res, next) => {
       productName,
       category,
       subcategory,
-      clientId        // ← added ✅
+      clientId,
+      originalResultCount  // ← how many results the search returned ✅
     } = req.body;
 
     // full payload validation
@@ -53,9 +54,11 @@ router.post('/click', async (req, res, next) => {
       productName,
       category,
       subcategory,
-      clientId:    clientId    || null,   // ← per-client tracking ✅
-      clientScope: clientScope || null,   // ← scope context ✅
-      requestId:   res.locals.requestId || null
+      clientId:    clientId    || null,
+      clientScope:         clientScope         || null,
+      requestId:           res.locals.requestId || null,
+      originalResultCount: typeof originalResultCount === 'number'
+        ? originalResultCount : null  // ← passed to tracker ✅
     });
 
     return successResponse(res, {
