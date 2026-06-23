@@ -103,9 +103,21 @@ function writeCorrection(validated) {
     }
 
     // skip if already exists ✅
+    // log conflict if Groq suggests different correction ✅
     if (map[key]) {
-      console.log(`[Writer] Already exists — skipped: "${key}"`);
-      skipped.push({ query: key, reason: 'already_exists' });
+      const existing = map[key].correction;
+      if (existing !== correction) {
+        console.warn(`[Writer] ⚠️  Conflict: "${key}" existing="${existing}" candidate="${correction}" source=groq`);
+        skipped.push({
+          query:     key,
+          reason:    'conflict',
+          existing,
+          candidate: correction
+        });
+      } else {
+        console.log(`[Writer] Already exists — skipped: "${key}"`);
+        skipped.push({ query: key, reason: 'already_exists' });
+      }
       continue;
     }
 
