@@ -96,8 +96,11 @@ function isValidCorrection(input, output) {
 }
 
 // ─── CALL GROQ ────────────────────────────────────────────
+// scopeHint: domain context passed in user message ✅
+// gives Groq context without separate per-domain prompts ✅
+// validator is the real safety net — scope hint is a nudge ✅
 
-async function getCorrection(query) {
+async function getCorrection(query, scopeHint = 'global') {
   try {
     const normalised = normalise(query);
     if (!normalised) return null;
@@ -108,9 +111,17 @@ async function getCorrection(query) {
       return null;
     }
 
-    console.log(`[GroqClient] Asking Groq: "${normalised}"`);
+    console.log(`[GroqClient] Asking Groq: "${normalised}" (scope: ${scopeHint})`);
 
     const client = getClient();
+
+    // ── build user message with scope hint ────────────────
+    // global scope → no hint needed ✅
+    // specific scope → give Groq domain context ✅
+    // keeps single system prompt — no per-domain maintenance ✅
+    const userMessage = scopeHint && scopeHint !== 'global'
+      ? `Scope: ${scopeHint}\nFix typos: ${normalised}`
+      : `Fix typos: ${normalised}`;
 
     const response = await client.chat.completions.create({
       model:       GROQ.model,
@@ -123,7 +134,7 @@ async function getCorrection(query) {
         },
         {
           role:    'user',
-          content: `Fix typos: ${normalised}`
+          content: userMessage
         }
       ]
     });
@@ -139,7 +150,7 @@ async function getCorrection(query) {
       return null;
     }
 
-    console.log(`[GroqClient] ✅ "${normalised}" → "${correction}"`);
+    console.log(`[GroqClient] ✅ "${normalised}" → "${correction}" (scope: ${scopeHint})`);
     return correction;
 
   } catch (err) {
@@ -162,26 +173,27 @@ async function batchCorrections(queries, delayMs = 500) {
 
     console.log(`\n[GroqClient] Processing ${i + 1}/${queries.length}: "${query}"`);
 
-    const correction = await getCorrection(query);
+    // pass scopeHint to getCorrection ✅
+    // derived by queryCollector from which clients saw query ✅
+    const correction = await getCorrection(query, scopeHint || 'global');
 
     results.push({
       query,
       count,
       clients,
       scopeHint,
-      correction,       // null if no valid correction ✅
+      correction,
       groqCalled: true
     });
 
     // delay between calls ✅
-    // avoids rate limits ✅
     if (i < queries.length - 1) {
       await new Promise(r => setTimeout(r, delayMs));
     }
   }
 
-  const found    = results.filter(r => r.correction !== null).length;
-  const skipped  = results.filter(r => r.correction === null).length;
+  const found   = results.filter(r => r.correction !== null).length;
+  const skipped = results.filter(r => r.correction === null).length;
 
   console.log(`\n[GroqClient] Done: ${found} corrections found, ${skipped} skipped`);
 

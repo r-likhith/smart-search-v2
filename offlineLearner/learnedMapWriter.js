@@ -3,6 +3,8 @@
 // saves as candidate status ✅
 // validation evidence attached ✅
 // lastUsed: null until actually used ✅
+// atomic write: tmp → rename ✅
+// fresh reload before save prevents lost writes ✅
 
 const fs   = require('fs');
 const path = require('path');
@@ -32,15 +34,22 @@ function loadIndex() {
 }
 
 // ─── SAVE MAP ─────────────────────────────────────────────
+// atomic write: tmp → rename ✅
+// prevents corrupt reads if server reads mid-write ✅
 
 function saveMap(map) {
-  fs.writeFileSync(PATHS.learnedMap, JSON.stringify(map, null, 2));
+  const tmp = PATHS.learnedMap + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(map, null, 2));
+  fs.renameSync(tmp, PATHS.learnedMap);
 }
 
 // ─── SAVE INDEX ───────────────────────────────────────────
+// atomic write: tmp → rename ✅
 
 function saveIndex(index) {
-  fs.writeFileSync(PATHS.reverseIndex, JSON.stringify(index, null, 2));
+  const tmp = PATHS.reverseIndex + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(index, null, 2));
+  fs.renameSync(tmp, PATHS.reverseIndex);
 }
 
 // ─── UPDATE REVERSE INDEX ────────────────────────────────
@@ -76,6 +85,7 @@ function updateReverseIndex(wrongWord, correctWord, index) {
 // ─── WRITE CORRECTION ────────────────────────────────────
 
 function writeCorrection(validated) {
+  // initial load to check duplicates + chains ✅
   const map   = loadMap();
   const index = loadIndex();
   const now   = new Date().toISOString();
@@ -119,24 +129,23 @@ function writeCorrection(validated) {
       hitCount:    0,
       failures:    0,
       source:      'groq',
-      model:       GROQ.model,           // which model suggested ✅
-      learnedBy:   'offlineLearner',     // audit trail ✅
-      status:      STATUS.CANDIDATE,     // candidate until users validate ✅
-      scope:       item.scope,           // electronics/fashion/grocery/global ✅
-      learnedFrom: item.clients?.[0]     || null,
+      model:       GROQ.model,        // which model suggested ✅
+      learnedBy:   'offlineLearner',  // audit trail ✅
+      status:      STATUS.CANDIDATE,  // candidate until users validate ✅
+      scope:       item.scope,        // electronics/fashion/grocery/global ✅
+      learnedFrom: item.clients?.[0] || null,
       firstSeen:   now,
-      lastUsed:    null,                 // null = never applied yet ✅
+      lastUsed:    null,              // null = never applied yet ✅
       lastUpdated: now,
       // validation evidence stays attached ✅
       // "why did we trust this?" ✅
       validation: {
-        clientCount: item.clientCount    || 0,
-        bestHits:    item.bestHits       || 0,
-        scope:       item.scope          || null
+        clientCount: item.clientCount || 0,
+        bestHits:    item.bestHits    || 0,
+        scope:       item.scope       || null
       }
     };
 
-    // update reverse index ✅
     updateReverseIndex(key, correction, index);
 
     console.log(`[Writer] ✅ Saved: "${key}" → "${correction}" (${item.scope}, candidate)`);
@@ -150,10 +159,27 @@ function writeCorrection(validated) {
     });
   }
 
-  // persist to disk ✅
+  // ── persist to disk ───────────────────────────────────
   if (saved.length > 0) {
-    saveMap(map);
-    saveIndex(index);
+    // reload fresh before saving ✅
+    // prevents overwriting corrections made by
+    // live server during our processing run ✅
+    const freshMap   = loadMap();
+    const freshIndex = loadIndex();
+
+    // merge only our new entries into fresh state ✅
+    // existing entries from live server preserved ✅
+    for (const item of saved) {
+      if (!freshMap[item.query]) {
+        freshMap[item.query] = map[item.query];
+      }
+    }
+    for (const item of saved) {
+      updateReverseIndex(item.query, item.correction, freshIndex);
+    }
+
+    saveMap(freshMap);
+    saveIndex(freshIndex);
     console.log(`\n[Writer] Saved ${saved.length} corrections to learnedMap ✅`);
   } else {
     console.log(`\n[Writer] Nothing new to save`);
