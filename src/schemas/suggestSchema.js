@@ -41,7 +41,7 @@ function buildSuggestResponse(data) {
       // backwards compat ✅
       categories: (data.categories || []).map(cat => ({
         id:               cat.id          || null,
-        name:             cat.name,
+        name:             cat.value       || cat.name || null, // ← searcher uses value ✅
         parent:           cat.parent           || null,
         grandparent:      cat.grandparent      || null,
         greatGrandparent: cat.greatGrandparent || null,
@@ -52,11 +52,11 @@ function buildSuggestResponse(data) {
         maxPrice:         cat.maxPrice         || 0,
         type:             cat.type             || 'category',
         action: {
-          type:        'navigate',
-          catalogue:   cat.greatGrandparent || cat.grandparent || null,
-          category:    cat.grandparent      || cat.parent      || cat.name,
-          subcategory: cat.parent ? cat.name : null,
-          subCategory: cat.level === 'L4'   ? cat.name : null,
+          type:        cat.action?.type || 'navigate',
+          catalogue:   cat.action?.catalogue || null,  // ← from searcher action ✅
+          category:    cat.action?.category  || null,  // ← from searcher action ✅
+          subcategory: cat.action?.subcategory || null,
+          subCategory: cat.action?.subCategory || null,
           path:        cat.path || null
         }
       })),

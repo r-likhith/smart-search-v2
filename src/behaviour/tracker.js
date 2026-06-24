@@ -72,8 +72,9 @@ function recordClick(data) {
       productName,
       category,
       subcategory,
+      clientId,            // ← per-client tracking ✅
       requestId,
-      originalResultCount  // ← new: how many results query returned ✅
+      originalResultCount
     } = data;
 
     if (!query || !productId) {
@@ -109,16 +110,17 @@ function recordClick(data) {
 
     const click = {
       query,
-      normalised: normalisedQuery,
+      normalised:          normalisedQuery,
       productId,
-      productName: productName || '',
+      productName:         productName         || '',
       correction,
       aggregationKey,
-      category:             category             || null,
-      subcategory:          subcategory          || null,
-      originalResultCount:  originalResultCount  ?? null, // ← stored ✅
-      timestamp:            new Date().toISOString(),
-      requestId:            requestId            || null,
+      category:            category            || null,
+      subcategory:         subcategory         || null,
+      clientId:            clientId            || null, // ← stored ✅
+      originalResultCount: originalResultCount ?? null,
+      timestamp:           new Date().toISOString(),
+      requestId:           requestId           || null,
       isFirst
     };
 

@@ -127,10 +127,49 @@ async function loadSuggestions(q) {
       API + '/api/suggest?q=' + encodeURIComponent(q) + '&clientId=' + CLIENT_ID,
       { headers: { 'x-api-key': API_KEY } }
     );
-    const data = await r.json();
-    const products = data.data && data.data.suggestions && data.data.suggestions.products || [];
-    if (!products.length) { sugsEl.style.display = 'none'; return; }
-    sugsEl.innerHTML = products.slice(0, 6).map(function(p) {
+    const data     = await r.json();
+    const suggs    = data.data && data.data.suggestions || {};
+    const cats     = (suggs.categories || []).filter(c => c.type === 'category' || c.type === 'catalogue');
+    const brands   = (suggs.categories || []).filter(c => c.type === 'brand');
+    const products = suggs.products || [];
+
+    if (!products.length && !cats.length && !brands.length) {
+      sugsEl.style.display = 'none';
+      return;
+    }
+
+    let html = '';
+
+    // ── categories ───────────────────────────────────────
+    if (cats.length) {
+      html += '<div style="padding:6px 16px 4px;font-size:11px;color:#999;font-weight:600;letter-spacing:0.05em">CATEGORIES</div>';
+      html += cats.slice(0, 2).map(function(c) {
+        return '<div class="sug-item" style="padding:8px 16px">' +
+          '<span class="sug-name">📁 ' + (c.name || '') + '</span>' +
+          '<span style="font-size:11px;color:#999">' + (c.productCount || 0) + ' products</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    // ── brands ───────────────────────────────────────────
+    if (brands.length) {
+      html += '<div style="padding:6px 16px 4px;font-size:11px;color:#999;font-weight:600;letter-spacing:0.05em">BRANDS</div>';
+      html += brands.slice(0, 2).map(function(b) {
+        return '<div class="sug-item" style="padding:8px 16px">' +
+          '<span class="sug-name">🏷️ ' + (b.name || '') + '</span>' +
+          '<span style="font-size:11px;color:#999">' + (b.productCount || 0) + ' products</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    // ── divider ───────────────────────────────────────────
+    if ((cats.length || brands.length) && products.length) {
+      html += '<div style="height:1px;background:#f0f0f0;margin:4px 0"></div>';
+      html += '<div style="padding:6px 16px 4px;font-size:11px;color:#999;font-weight:600;letter-spacing:0.05em">PRODUCTS</div>';
+    }
+
+    // ── products ─────────────────────────────────────────
+    html += products.slice(0, 4).map(function(p) {
       return '<div class="sug-item" onclick="pickSuggestion(' + JSON.stringify(p.name) + ')">' +
         '<span class="sug-name">' + (p.nameHighlighted || p.name) + '</span>' +
         '<span class="sug-meta">' +
@@ -139,7 +178,10 @@ async function loadSuggestions(q) {
         '</span>' +
       '</div>';
     }).join('');
+
+    sugsEl.innerHTML = html;
     sugsEl.style.display = 'block';
+
   } catch(e) {
     sugsEl.style.display = 'none';
   }
@@ -229,10 +271,10 @@ function renderResults(data) {
   document.getElementById('results').innerHTML =
     '<div class="grid">' +
     results.map(function(p) {
-      return '<div class="card" onclick="recordClick(' +
-        JSON.stringify(p.id) + ',' +
-        JSON.stringify(p.name || '') + ',' +
-        JSON.stringify(p.category || '') + ')">' +
+      return '<div class="card" ' +
+        'data-id="'       + (p.id       || '').replace(/"/g,'&quot;') + '" ' +
+        'data-name="'     + (p.name     || '').replace(/"/g,'&quot;') + '" ' +
+        'data-category="' + (p.category || '').replace(/"/g,'&quot;') + '">' +
         '<div class="card-name">' + p.name + '</div>' +
         '<div class="card-brand">' + (p.brand || '—') + '</div>' +
         (p.size ? '<div class="card-size">' + p.size + '</div>' : '') +
@@ -243,6 +285,18 @@ function renderResults(data) {
       '</div>';
     }).join('') +
     '</div>';
+
+  // ── attach click handlers via event delegation ✅
+  // no inline onclick → no quote/apostrophe issues ✅
+  document.getElementById('results').addEventListener('click', function(e) {
+    var card = e.target.closest('.card');
+    if (!card) return;
+    recordClick(
+      card.dataset.id,
+      card.dataset.name,
+      card.dataset.category
+    );
+  });
 }
 
 function searchInstead(original) {
