@@ -175,7 +175,19 @@ async function loadSuggestions(q) {
       '</div>';
     }).join('');
 
-    sugsEl.innerHTML = html;
+    // ── correction indicator ✅
+    // show only when query was corrected ✅
+    // "Suggestions for laptop" not "Did you mean" ✅
+    const correctionApplied = data.data?.correction?.applied || false;
+    const correctedQuery    = data.data?.correction?.correctedQuery || null;
+    let correctionBar = '';
+    if (correctionApplied && correctedQuery) {
+      correctionBar = '<div style="padding:6px 16px;font-size:11px;color:#999;border-bottom:0.5px solid #f0f0f0">' +
+        'Suggestions for <strong style="color:#1a1a1a">' + correctedQuery + '</strong>' +
+      '</div>';
+    }
+
+    sugsEl.innerHTML = correctionBar + html;
     sugsEl.style.display = 'block';
   } catch(e) {
     sugsEl.style.display = 'none';

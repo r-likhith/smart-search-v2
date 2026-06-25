@@ -46,7 +46,7 @@ router.get('/', async (req, res, next) => {
 
     return successResponse(res, buildSuggestResponse({
       originalQuery:        q,
-      normalisedQuery:      result.query,
+      normalisedQuery:      result.normalisedQuery || result.query || q,
       // correction fields ✅
       correctedQuery:       result.correctedQuery       || null,
       wasCorrected:         result.wasCorrected         || false,

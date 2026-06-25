@@ -797,9 +797,20 @@ async function runSuggest(query, options = {}) {
   // if good results → done, no repair needed ✅
   const directResults = await getSuggestions(normalised, options);
   if ((directResults.products?.length || 0) >= MIN_SUGGEST_RESULTS) {
+    // ── check learnedMap even on direct hit ──────────────
+    // if learnedMap has a correction → show indicator ✅
+    // user deserves to know what was corrected ✅
+    const quickCheck = applyCorrection(query, null, {
+      clientId:    options.clientId    || null,
+      clientScope: options.clientScope || null
+    });
     return buildSuggestResponse(
-      query, normalised, normalised,
-      false, null, null, directResults
+      query, normalised,
+      quickCheck.corrected ? quickCheck.query : normalised,
+      quickCheck.corrected,
+      quickCheck.corrected ? quickCheck.source : null,
+      quickCheck.corrected ? quickCheck.confidence : null,
+      directResults
     );
   }
 
