@@ -797,20 +797,51 @@ async function runSuggest(query, options = {}) {
   // if good results → done, no repair needed ✅
   const directResults = await getSuggestions(normalised, options);
   if ((directResults.products?.length || 0) >= MIN_SUGGEST_RESULTS) {
-    // ── check learnedMap even on direct hit ──────────────
-    // if learnedMap has a correction → show indicator ✅
-    // user deserves to know what was corrected ✅
+
+    // ── check all correction layers for indicator ─────────
+    // learnedMap first — highest confidence ✅
     const quickCheck = applyCorrection(query, null, {
       clientId:    options.clientId    || null,
       clientScope: options.clientScope || null
     });
+    if (quickCheck.corrected) {
+      return buildSuggestResponse(
+        query, normalised, quickCheck.query,
+        true, quickCheck.source, quickCheck.confidence,
+        directResults
+      );
+    }
+
+    // symspell check ✅
+    if (getSymSpellStatus().ready) {
+      const symCheck = symspellCorrectQuery(normalised);
+      if (symCheck && symCheck.corrected !== normalised) {
+        return buildSuggestResponse(
+          query, normalised, symCheck.corrected,
+          true, 'symspell', 0.85,
+          directResults
+        );
+      }
+    }
+
+    // phonetic check ✅
+    // catches sound-alike typos even on direct hits ✅
+    // "earfone" → "earphone", "nikee" → "nokia" ✅
+    if (getPhoneticStatus().ready) {
+      const phonCheck = phoneticCorrectQuery(normalised);
+      if (phonCheck && phonCheck.corrected !== normalised) {
+        return buildSuggestResponse(
+          query, normalised, phonCheck.corrected,
+          true, 'phonetic', 0.80,
+          directResults
+        );
+      }
+    }
+
+    // no correction found → return as-is ✅
     return buildSuggestResponse(
-      query, normalised,
-      quickCheck.corrected ? quickCheck.query : normalised,
-      quickCheck.corrected,
-      quickCheck.corrected ? quickCheck.source : null,
-      quickCheck.corrected ? quickCheck.confidence : null,
-      directResults
+      query, normalised, normalised,
+      false, null, null, directResults
     );
   }
 
