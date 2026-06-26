@@ -710,7 +710,39 @@ async function tryPhoneticCorrection(query, normalised, options, startTime, orig
       return null;
     }
 
-    const corrected = phonResult.corrected;
+    // confidence gate ✅
+    if (phonResult.confidence && phonResult.confidence < 0.50) {
+      analytics.phonetic.outcome = 'low_confidence';
+      console.log(`[Phonetic] Low confidence (${phonResult.confidence}) — skipped`);
+      return null;
+    }
+
+    // ── multi-candidate validation ─────────────────────
+    // get top 3 candidates + validate each against Meili ✅
+    // pick candidate with most results ✅
+    // same philosophy as Groq validator ✅
+    const { getTopCandidates } = require('../spellcheck/phonetic');
+    const queryWords = query.toLowerCase().trim().split(/\s+/);
+    const firstWord  = queryWords[0];
+    const topCands   = getTopCandidates(firstWord, 3);
+
+    let bestCorrected   = phonResult.corrected;
+    let bestHits        = 0;
+
+    if (topCands.length > 1) {
+      for (const cand of topCands) {
+        const candQuery   = queryWords.length > 1
+          ? [cand.word, ...queryWords.slice(1)].join(' ')
+          : cand.word;
+        const candResults = await searchProducts(candQuery, options);
+        if (candResults.totalHits > bestHits) {
+          bestHits      = candResults.totalHits;
+          bestCorrected = candQuery;
+        }
+      }
+    }
+
+    const corrected = bestCorrected;
     analytics.phonetic.candidate = corrected;
 
     if (corrected === normalised) {
