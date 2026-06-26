@@ -700,8 +700,12 @@ async function tryPhoneticCorrection(query, normalised, options, startTime, orig
     const phonTime   = Date.now() - phonStart;
 
     analytics.phonetic = {
-      called: true, timeTaken: phonTime,
-      candidate: null, outcome: 'skipped'
+      called:     true,
+      timeTaken:  phonTime,
+      candidate:  null,
+      outcome:    'skipped',
+      confidence: null,   // ← logged after correction ✅
+      margin:     null    // ← logged after correction ✅
     };
     analytics.timing.phonetic = phonTime;
 
@@ -710,8 +714,14 @@ async function tryPhoneticCorrection(query, normalised, options, startTime, orig
       return null;
     }
 
+    // log confidence + margin for observability ✅
+    // don't gate on margin yet — observe distributions first ✅
+    analytics.phonetic.confidence = phonResult.confidence || null;
+    analytics.phonetic.margin     = phonResult.margin     || null;
+    analytics.phonetic.runnerUp   = phonResult.changes?.[0]?.runnerUp || null;
+
     // confidence gate ✅
-    if (phonResult.confidence && phonResult.confidence < 0.50) {
+    if (phonResult.confidence && phonResult.confidence < 0.60) {
       analytics.phonetic.outcome = 'low_confidence';
       console.log(`[Phonetic] Low confidence (${phonResult.confidence}) — skipped`);
       return null;

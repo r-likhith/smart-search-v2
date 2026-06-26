@@ -29,7 +29,7 @@ const MIN_FREQ             = 100;
 const PRODUCT_BOOST        = 999999;
 const MAX_LEN_DIFF         = 3;
 const MAX_CANDIDATES       = 5;
-const MIN_CONFIDENCE       = 0.50;  // skip low confidence corrections ✅
+const MIN_CONFIDENCE       = 0.60;  // skip low confidence corrections ✅
 
 // ─── RANKING WEIGHTS ──────────────────────────────────────
 // all signals normalized 0→1 ✅
@@ -239,12 +239,12 @@ function rankCandidates(query, candidates) {
       lenScore    * W_LENGTH;
 
     return {
-      word:        c.word,
-      score:       parseFloat(total.toFixed(4)),
-      editDist:    dist,
-      prefixLen:   prefix,
-      suffixLen:   suffix,
-      freq:        c.freq
+      word:      c.word,
+      score:     parseFloat(total.toFixed(4)),
+      editDist:  dist,
+      prefixLen: prefix,
+      suffixLen: suffix,
+      freq:      c.freq
     };
   });
 
@@ -264,7 +264,6 @@ function correctWord(word) {
   if (!ranked.length) return null;
 
   // respect confidence threshold ✅
-  // low confidence = phonetics too uncertain → skip ✅
   if (ranked[0].score < MIN_CONFIDENCE) return null;
 
   return ranked[0].word;
@@ -283,7 +282,7 @@ function getTopCandidates(word, topN = 3) {
 // ─── CORRECT QUERY ────────────────────────────────────────
 // corrects words symspell couldn't fix ✅
 // uses best candidate per word ✅
-// exposes confidence + candidates for caller ✅
+// exposes confidence + margin + candidates for caller ✅
 
 function correctQuery(query, { symspellResult = null } = {}) {
   if (!isReady || !query) return null;
@@ -292,6 +291,7 @@ function correctQuery(query, { symspellResult = null } = {}) {
   const correctedWords = [];
   const changes        = [];
   let   minConfidence  = 1.0;
+  let   minMargin      = 1.0;
 
   // skip words symspell already fixed ✅
   const symCorrectedWords = new Set();
@@ -319,15 +319,29 @@ function correctQuery(query, { symspellResult = null } = {}) {
       continue;
     }
 
-    const best = ranked[0];
-    correctedWords.push(best.word);
+    const winner   = ranked[0];
+    const runnerUp = ranked[1] || null;
+
+    // margin = gap between winner and runner-up ✅
+    // large margin = confident winner ✅
+    // small margin = ambiguous — observe but don't gate yet ✅
+    const margin = runnerUp
+      ? parseFloat((winner.score - runnerUp.score).toFixed(4))
+      : 1.0;
+
+    correctedWords.push(winner.word);
     changes.push({
       original:   word,
-      correction: best.word,
-      confidence: best.score
+      correction: winner.word,
+      confidence: winner.score,
+      margin,
+      runnerUp:   runnerUp?.word || null
     });
-    minConfidence = Math.min(minConfidence, best.score);
-    console.log(`[Phonetic] "${word}" → "${best.word}" (score: ${best.score})`);
+
+    minConfidence = Math.min(minConfidence, winner.score);
+    minMargin     = Math.min(minMargin, margin);
+
+    console.log(`[Phonetic] "${word}" → "${winner.word}" (score:${winner.score} margin:${margin} runnerUp:${runnerUp?.word || 'none'})`);
   }
 
   if (changes.length === 0) return null;
@@ -337,8 +351,9 @@ function correctQuery(query, { symspellResult = null } = {}) {
     corrected:          correctedWords.join(' '),
     changes,
     correctionsApplied: changes.length,
-    confidence:         parseFloat(minConfidence.toFixed(4)), // ← new ✅
-    candidates:         changes.map(c => c.correction)        // ← new ✅
+    confidence:         parseFloat(minConfidence.toFixed(4)), // ← min across all words ✅
+    margin:             parseFloat(minMargin.toFixed(4)),     // ← new: gap to runner-up ✅
+    candidates:         changes.map(c => c.correction) // ← correction words ✅
   };
 }
 
