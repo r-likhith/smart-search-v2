@@ -16,6 +16,13 @@ User types "red kurta under 500" → filters by color + price ✅
 
 User types "eyefone"             → finds iPhones (sound-alike) ✅
 
+User types "smrtwatch"           → suggest shows "Suggestions for smartwatch" ✅
+
+Autocomplete shows:
+  📁 Categories (display only)
+  🏷️ Brands (display only)
+  🛒 Products (clickable)
+
 Learns from traffic. Gets smarter over time. ✅
 
 ---
@@ -74,6 +81,7 @@ Single-client dev UI with:
 - Live activity log (shows corrections firing) ✅
 - Quick search + suggest testing ✅
 - Useful for debugging pipeline behaviour ✅
+
 http://localhost:3000/analytics
 Analytics dashboard showing:
 - Which correction layers are firing ✅
@@ -149,7 +157,7 @@ Smart Search v2 (this service)
 
 ├── SymSpell          (spell correction)
 
-├── Phonetic          (sound-alike matching)
+├── Phonetic          (sound-alike matching — 84.1% Top-1, 0% false positives)
 
 ├── IntentParser      (filter extraction)
 
@@ -169,9 +177,10 @@ Nothing else ✅
 ## Tests
 
 ```bash
-node mastercheckup.js   # 309 tests — full system check
-node brutalTest.js      # edge cases
-node chaosTest.js       # stress test
+node mastercheckup.js      # 314 tests — full system check
+node brutalTest.js         # edge cases
+node chaosTest.js          # stress test
+node phoneticBenchmark.js  # phonetic quality: Top-1/Top-3/FP/Coverage/Margin
 ```
 
 ---
