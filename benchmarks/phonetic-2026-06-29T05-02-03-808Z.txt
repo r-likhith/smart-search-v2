@@ -1,0 +1,61 @@
+╔════════════════════════════════════════╗
+║       PHONETIC BENCHMARK REPORT        ║
+╚════════════════════════════════════════╝
+
+Version:        2026-06-29T05:02:03.799Z
+Dataset:        57 pairs (44 typos, 13 fp checks)
+
+── ACCURACY ─────────────────────────────
+Top-1 accuracy: 37/44 = 84.1%
+Top-3 accuracy: 38/44 = 86.4%
+Coverage:       39/44 = 88.6% (words in phonetic index)
+False positives: 0/13 = 0.0%
+False negatives: 6/44
+Skipped:        5 (no phonetic candidates found)
+
+── CONFIDENCE ───────────────────────────
+Avg confidence: 0.7903
+Avg margin:     0.3589
+Min confidence: 0.5887
+Max confidence: 0.8393
+Min margin:     0.0549
+Max margin:     0.5713
+
+── BY CATEGORY ──────────────────────────
+  brand        top1:9/10=90%  coverage:100%
+  electronics  top1:12/12=100%  coverage:100%
+  fashion      top1:2/4=50%  coverage:75%
+  grocery      top1:5/7=71%  coverage:71%
+  sports       top1:3/5=60%  coverage:60%
+  general      top1:6/6=100%  coverage:100%
+
+── CONFUSION REPORT ─────────────────────
+  [brand] "appel"
+    expected:  apple
+    predicted: (none) (runner-up: apple)
+    margin:    0.0549
+    verdict:   TOP-3 ✅ (wrong rank)
+  [fashion] "leggigns"
+    expected:  leggings
+    predicted: legins
+    verdict:   MISS ❌
+  [fashion] "shurt"
+    expected:  shirt
+    predicted: (none)
+    verdict:   MISS ❌
+  [grocery] "choclate"
+    expected:  chocolate
+    predicted: (none)
+    verdict:   MISS ❌
+  [grocery] "cofee"
+    expected:  coffee
+    predicted: (none)
+    verdict:   MISS ❌
+  [sports] "cricekt"
+    expected:  cricket
+    predicted: (none)
+    verdict:   MISS ❌
+  [sports] "swimmin"
+    expected:  swimming
+    predicted: (none)
+    verdict:   MISS ❌

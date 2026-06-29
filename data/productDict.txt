@@ -178,4 +178,19 @@ kale 50
 reef 50
 hilsa 50
 ilish 50
-bodi 50
+bodi 50apple 999999
+sony 999999
+tennis 10000
+organic 10000
+potato 10000
+chicken 10000
+butter 10000
+leggings 10000
+coffee 10000
+broccoli 10000
+shampoo 10000
+perfume 10000
+chocolate 10000
+swimming 10000
+moisturiser 10000
+cricket 10000

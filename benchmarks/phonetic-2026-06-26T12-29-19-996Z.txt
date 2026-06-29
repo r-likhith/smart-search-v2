@@ -1,0 +1,118 @@
+╔════════════════════════════════════════╗
+║       PHONETIC BENCHMARK REPORT        ║
+╚════════════════════════════════════════╝
+
+Version:        2026-06-26T12:29:19.985Z
+Dataset:        57 pairs (47 typos, 10 false positive checks)
+
+── ACCURACY ─────────────────────────────
+Top-1 accuracy: 27/47 = 57.4%
+Top-3 accuracy: 34/47 = 72.3%
+False positives: 0/10 = 0.0%
+False negatives: 13/47
+Skipped (no candidates): 11
+
+── CONFIDENCE ───────────────────────────
+Avg confidence: 0.7427
+Avg margin:     0.2624
+Min confidence: 0.4583
+Max confidence: 0.8393
+Min margin:     0.0056
+Max margin:     0.5713
+
+── BY CATEGORY ──────────────────────────
+  brand        8/10 = 80%
+  electronics  12/12 = 100%
+  fashion      2/7 = 29%
+  grocery      1/7 = 14%
+  sports       2/5 = 40%
+  general      2/6 = 33%
+
+── CONFUSION REPORT ─────────────────────
+  [brand] "appel"
+    expected:  apple
+    predicted: (none) (runner-up: apple)
+    margin:    0.0549
+    verdict:   TOP-3 ✅ (wrong rank)
+  [brand] "soni"
+    expected:  sony
+    predicted: (none) (runner-up: sony)
+    margin:    0.0489
+    verdict:   TOP-3 ✅ (wrong rank)
+  [fashion] "leggigns"
+    expected:  leggings
+    predicted: legins
+    verdict:   MISS ❌
+  [fashion] "shurt"
+    expected:  shirt
+    predicted: (none)
+    verdict:   MISS ❌
+  [fashion] "trouser"
+    expected:  trouser
+    predicted: (none)
+    verdict:   MISS ❌
+  [fashion] "sandal"
+    expected:  sandal
+    predicted: (none)
+    verdict:   MISS ❌
+  [fashion] "saree"
+    expected:  saree
+    predicted: (none)
+    verdict:   MISS ❌
+  [grocery] "potatoe"
+    expected:  potato
+    predicted: (none) (runner-up: pitted)
+    margin:    0.0081
+    verdict:   TOP-3 ✅ (wrong rank)
+  [grocery] "choclate"
+    expected:  chocolate
+    predicted: (none)
+    verdict:   MISS ❌
+  [grocery] "chiken"
+    expected:  chicken
+    predicted: (none) (runner-up: shagun)
+    margin:    0.0056
+    verdict:   TOP-3 ✅ (wrong rank)
+  [grocery] "brocolli"
+    expected:  broccoli
+    predicted: (none)
+    verdict:   MISS ❌
+  [grocery] "cofee"
+    expected:  coffee
+    predicted: (none)
+    verdict:   MISS ❌
+  [grocery] "buter"
+    expected:  butter
+    predicted: (none) (runner-up: bater)
+    margin:    0.0558
+    verdict:   TOP-3 ✅ (wrong rank)
+  [sports] "cricekt"
+    expected:  cricket
+    predicted: (none)
+    verdict:   MISS ❌
+  [sports] "tenniss"
+    expected:  tennis
+    predicted: teens (runner-up: tennis)
+    margin:    0.0125
+    verdict:   TOP-3 ✅ (wrong rank)
+  [sports] "swimmin"
+    expected:  swimming
+    predicted: (none)
+    verdict:   MISS ❌
+  [general] "orgnic"
+    expected:  organic
+    predicted: orange (runner-up: organic)
+    margin:    0.0197
+    verdict:   TOP-3 ✅ (wrong rank)
+  [general] "moisturiser"
+    expected:  moisturiser
+    predicted: (none)
+    verdict:   MISS ❌
+  [general] "shampoo"
+    expected:  shampoo
+    predicted: (none)
+    verdict:   MISS ❌
+  [general] "perfume"
+    expected:  perfume
+    predicted: (none)
+    verdict:   MISS ❌
