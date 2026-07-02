@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 const fetch = require('node-fetch');
 const { createIndexes } = require('./src/meilisearch/indexes');
 const { errorHandler, AuthError } = require('./src/utils/errors');
@@ -18,6 +19,52 @@ const { loadBrands } = require('./src/query/intentParser');
 const meiliClient = require('./src/meilisearch/client');
 const { aggregate, replayQuery } = require('./analytics/aggregator');
 const config = require('./src/config');
+
+// ─── CONFIG VALIDATION ────────────────────────────────────
+// Fail immediately with a clear message if any required
+// env var is missing — catches .env typos on Oracle VM
+// deployment before they cause confusing runtime errors ✅
+// Runs before any route, middleware, or DB init. ✅
+
+const REQUIRED_ENV = [
+  'MEILI_HOST',
+  'MEILI_MASTER_KEY',
+  'API_KEY',
+  'PORT',
+  'GROQ_API_KEY'
+];
+
+const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missingEnv.length > 0) {
+  console.error('');
+  console.error('❌ Missing required environment variables:');
+  missingEnv.forEach(k => console.error(`   - ${k}`));
+  console.error('');
+  console.error('   Check your .env file against .env.example');
+  console.error('   Server will not start until all required vars are set.');
+  console.error('');
+  process.exit(1);
+}
+
+// ─── BACKUP HELPER ────────────────────────────────────────
+// shared by both the nightly scheduler and the pre-reload
+// trigger — single place to change backup behavior ✅
+
+function runBackup(reason = 'scheduled') {
+  const start = Date.now();
+  exec('bash ./scripts/backup.sh', (err, stdout) => {
+    if (err) {
+      console.error(`[Backup] ❌ Failed (${reason}): ${err.message}`);
+    } else {
+      console.log(`[Backup] ✅ Complete (${reason}, ${Date.now() - start}ms)`);
+      if (stdout) {
+        // only log the summary line, not every file ✅
+        const summary = stdout.split('\n').find(l => l.includes('Backup complete'));
+        if (summary) console.log(`[Backup] ${summary.trim()}`);
+      }
+    }
+  });
+}
 
 // Routes
 const searchRoute    = require('./src/api/search');
@@ -123,9 +170,6 @@ function calcSourcePerformance(map) {
 }
 
 // ─── RECENT ACTIVITY HELPER ───────────────────────────────
-// reads last N lines from analytics.log ✅
-// parses each line as JSON ✅
-// returns structured activity events ✅
 
 function readRecentActivity(logFile, limit = 50) {
   try {
@@ -133,39 +177,36 @@ function readRecentActivity(logFile, limit = 50) {
 
     const content = fs.readFileSync(logFile, 'utf8');
     const lines   = content.trim().split('\n').filter(Boolean);
-
-    // take last N lines ✅
-    const recent = lines.slice(-limit);
+    const recent  = lines.slice(-limit);
 
     return recent
       .map(line => {
         try {
           const e = JSON.parse(line);
           return {
-            time:            e.ts ? new Date(e.ts).toLocaleTimeString('en', { hour12: false }) : null,
-            timestamp:       e.ts || null,
-            clientId:        e.clientId   || null,
-            query:           e.query      || null,
-            displayQuery:    e.correction?.applied ? e.correction.finalQuery : null,
-            correctionMode:  e.correctionMode  || 'none',
-            correctionSource:e.correction?.source !== 'none' ? e.correction?.source : null,
-            layer:           e.searchStage      || 'meilisearch',
-            hits:            e.results?.count   || 0,
-            isZeroResult:    e.results?.isZeroResult || false,
-            isFallback:      e.results?.isFallback   || false,
-            processingTime:  e.timing?.total    || 0,
-            latency:         e.timing?.latencyBucket || null,
-            corrected:       e.correction?.applied   || false,
-            saved:           e.learnedMap?.outcome === 'accepted' || false,
-            intentFilters:   Object.keys(e.intent?.filters || {}).length > 0
-                               ? e.intent.filters : null,
-            // what the system decided and why ✅
+            time:             e.ts ? new Date(e.ts).toLocaleTimeString('en', { hour12: false }) : null,
+            timestamp:        e.ts || null,
+            clientId:         e.clientId   || null,
+            query:            e.query      || null,
+            displayQuery:     e.correction?.applied ? e.correction.finalQuery : null,
+            correctionMode:   e.correctionMode  || 'none',
+            correctionSource: e.correction?.source !== 'none' ? e.correction?.source : null,
+            layer:            e.searchStage      || 'meilisearch',
+            hits:             e.results?.count   || 0,
+            isZeroResult:     e.results?.isZeroResult || false,
+            isFallback:       e.results?.isFallback   || false,
+            processingTime:   e.timing?.total    || 0,
+            latency:          e.timing?.latencyBucket || null,
+            corrected:        e.correction?.applied   || false,
+            saved:            e.learnedMap?.outcome === 'accepted' || false,
+            intentFilters:    Object.keys(e.intent?.filters || {}).length > 0
+                                ? e.intent.filters : null,
             why: buildWhyString(e)
           };
         } catch { return null; }
       })
       .filter(Boolean)
-      .reverse(); // most recent first ✅
+      .reverse();
 
   } catch (e) {
     return [];
@@ -173,8 +214,6 @@ function readRecentActivity(logFile, limit = 50) {
 }
 
 // ─── WHY STRING BUILDER ───────────────────────────────────
-// human-readable explanation of what the pipeline did ✅
-// this is the "wow" moment for observers ✅
 
 function buildWhyString(e) {
   if (e.results?.isFallback) {
@@ -261,13 +300,6 @@ app.get('/api/analytics', checkApiKey, (req, res) => {
 });
 
 // ─── ADMIN: RECENT ACTIVITY ───────────────────────────────
-// GET /api/admin/recent-activity ✅
-// returns last 50 search events ✅
-// structured with full decision context ✅
-// filterable by: clientId, layer, correctionOnly,
-//                zeroResultOnly, limit ✅
-// auto-refreshable — poll every 10s from dashboard ✅
-// the "wow" endpoint — shows system intelligence ✅
 
 app.get('/api/admin/recent-activity', checkApiKey, (req, res) => {
   try {
@@ -278,12 +310,9 @@ app.get('/api/admin/recent-activity', checkApiKey, (req, res) => {
     const zeroResultOnly = req.query.zeroResultOnly === 'true';
     const groqOnly       = req.query.groqOnly       === 'true';
 
-    // ── read from global log ──────────────────────────
-    // read more than limit to allow for filtering ✅
     const LOG_FILE = path.join(__dirname, 'logs/analytics.log');
     let events = readRecentActivity(LOG_FILE, limit * 3);
 
-    // ── also read per-client logs if clientId given ──
     if (filterClient) {
       const clientLog = path.join(
         __dirname,
@@ -292,7 +321,6 @@ app.get('/api/admin/recent-activity', checkApiKey, (req, res) => {
       events = readRecentActivity(clientLog, limit * 3);
     }
 
-    // ── apply filters ─────────────────────────────────
     if (filterClient && !filterClient === null) {
       events = events.filter(e => e.clientId === filterClient);
     }
@@ -309,10 +337,8 @@ app.get('/api/admin/recent-activity', checkApiKey, (req, res) => {
       events = events.filter(e => e.correctionSource === 'groq');
     }
 
-    // ── trim to requested limit ───────────────────────
     events = events.slice(0, limit);
 
-    // ── summary stats ─────────────────────────────────
     const summary = {
       total:         events.length,
       corrected:     events.filter(e => e.corrected).length,
@@ -394,6 +420,12 @@ app.post('/api/sync/trigger', checkApiKey, (req, res) => {
 
 app.post('/api/admin/reload', checkApiKey, (req, res) => {
   try {
+    // backup before reload — protects against accidentally
+    // overwriting good data with a bad learnedMap ✅
+    // non-blocking: reload proceeds regardless of backup
+    // outcome — we never block an admin action for a backup ✅
+    runBackup('pre-reload');
+
     loadMap();
     loadSuggestMap();
     const stats        = getStats();
@@ -588,8 +620,7 @@ async function checkOllama() {
 
 async function start() {
   try {
-    if (!config.apiKey) { console.error('❌ Missing API_KEY'); process.exit(1); }
-    if (!config.port)   { console.error('❌ Missing PORT');    process.exit(1); }
+    // env vars already validated at top of file ✅
 
     await createIndexes();
     console.log('Meilisearch indexes ready');
@@ -671,6 +702,27 @@ async function start() {
     }
 
     server = app.listen(config.port, () => {
+      // ── formalized startup report ─────────────────────
+      const stats        = getStats();
+      const suggestStats = getSuggestStats();
+      const clickStats   = getClickStats();
+
+      console.log('');
+      console.log('╔════════════════════════════════════════╗');
+      console.log('║         SMART SEARCH v2 READY          ║');
+      console.log('╚════════════════════════════════════════╝');
+      console.log(`  Corrections:    ${stats.totalEntries} entries`);
+      console.log(`    manual:       ${stats.manualEntries}`);
+      console.log(`    groq:         ${stats.groqEntries}`);
+      console.log(`    click:        ${stats.clickEntries}`);
+      console.log(`    disabled:     ${stats.disabledEntries}`);
+      console.log(`  Suggest:        ${suggestStats.totalCompletions} completions`);
+      console.log(`  Clicks:         ${clickStats.totalRawClicks} recorded`);
+      console.log(`  Meilisearch:    ${process.env.MEILI_HOST}`);
+      console.log(`  Port:           ${config.port}`);
+      console.log(`  Clients:        8`);
+      console.log('════════════════════════════════════════');
+
       console.log(`\n🌿 Smart Search v2`);
       console.log(`Running at http://localhost:${config.port}`);
       console.log(`\nEndpoints:`);
@@ -694,6 +746,14 @@ async function start() {
       console.log(`GET  /              → Search UI`);
       console.log(`GET  /analytics     → Analytics Dashboard`);
       console.log(`GET  /demos         → Client Demo Pages`);
+
+      // ── nightly backup scheduler ──────────────────────
+      // Docker-native: works identically on laptop and
+      // Oracle VM without any host-level cron config ✅
+      // 24h interval resets on container restart —
+      // acceptable at current scale ✅
+      setInterval(() => runBackup('scheduled'), 24 * 60 * 60 * 1000);
+      console.log('\n[Backup] Scheduler started — runs every 24h ✅');
     });
 
   } catch (err) {

@@ -15,8 +15,12 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 60s
+      retries: 20         # was 10 — gives Meili ~200s to become healthy on slow cold boot ✅
+      start_period: 90s   # was 60s — extra grace period before healthcheck retries begin ✅
+    deploy:
+      resources:
+        limits:
+          memory: 1g      # prevents Meili consuming all available RAM ✅
 
   smart-search:
     build:
@@ -39,6 +43,10 @@ services:
     depends_on:
       meilisearch:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m    # prevents Node consuming all RAM if a memory leak develops ✅
 
 volumes:
   meili_data:

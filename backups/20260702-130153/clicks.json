@@ -1,0 +1,428 @@
+{
+  "raw": [
+    {
+      "query": "watch",
+      "normalised": "watch",
+      "productId": "68808be7c8b28c61674647ce",
+      "productName": "Pebble Pfb90 Revolve Pro Carbon Grey Watch",
+      "correction": "smart watch",
+      "aggregationKey": "smart watch",
+      "category": "Smart Watch",
+      "subcategory": null,
+      "originalResultCount": 104,
+      "timestamp": "2026-06-23T12:17:31.055Z",
+      "requestId": "75063a6a-dd75-4cb3-aad6-a419a17b0a6f",
+      "isFirst": true
+    },
+    {
+      "query": "watch",
+      "normalised": "watch",
+      "productId": "68808be7c8b28c61674647ca",
+      "productName": "Pebble Pfb82 Royale Legend Whiskey Brown Watch",
+      "correction": "smart watch",
+      "aggregationKey": "smart watch",
+      "category": "Smart Watch",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 104,
+      "timestamp": "2026-06-23T13:06:12.375Z",
+      "requestId": "f9b818ac-7c04-4374-a6b4-8e4ea9c42c43",
+      "isFirst": true
+    },
+    {
+      "query": "watch",
+      "normalised": "watch",
+      "productId": "68808be7c8b28c61674647ce",
+      "productName": "Pebble Pfb90 Revolve Pro Carbon Grey Watch",
+      "correction": "smart watch",
+      "aggregationKey": "smart watch",
+      "category": "Smart Watch",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 104,
+      "timestamp": "2026-06-23T13:06:15.478Z",
+      "requestId": "898f064b-58e9-4561-a2ad-92ac1761ed0b",
+      "isFirst": false
+    },
+    {
+      "query": "watch",
+      "normalised": "watch",
+      "productId": "68808be6c8b28c61674647bc",
+      "productName": "Ambrane Swc-04 Fitshot Saturn Blue Watch",
+      "correction": "smart watch",
+      "aggregationKey": "smart watch",
+      "category": "Smart Watch",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 104,
+      "timestamp": "2026-06-23T13:06:20.679Z",
+      "requestId": "bda9c7b0-003c-4242-ad30-e256b797655a",
+      "isFirst": true
+    },
+    {
+      "query": "laptop",
+      "normalised": "laptop",
+      "productId": "685e87db6c133a7412a0cb50",
+      "productName": "Samsung Galaxy Tab S9 FE LTE (Silver Shine, 8GB + 256GB)",
+      "correction": "ipad tablets laptops",
+      "aggregationKey": "ipad tablets laptops",
+      "category": "Ipad, Tablets & Laptops",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 244,
+      "timestamp": "2026-06-24T05:49:53.161Z",
+      "requestId": "37c57383-beeb-42b2-9c71-854c9e771fa5",
+      "isFirst": true
+    },
+    {
+      "query": "laptop",
+      "normalised": "laptop",
+      "productId": "6888bc8a93bea814c61cf7b2",
+      "productName": "iPad 11 Inch Wi-Fi 256GB (Blue)",
+      "correction": "ipad tablets laptops",
+      "aggregationKey": "ipad tablets laptops",
+      "category": "iPad, Tablets & Laptops",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 244,
+      "timestamp": "2026-06-24T05:55:22.022Z",
+      "requestId": "b5982806-6c15-4572-b9e9-d84120a43504",
+      "isFirst": true
+    },
+    {
+      "query": "laptop",
+      "normalised": "laptop",
+      "productId": "6888bcac93bea814c61cf7e1",
+      "productName": "iPad Air 13 Inch Wi-Fi 512GB (Purple)",
+      "correction": "ipad tablets laptops",
+      "aggregationKey": "ipad tablets laptops",
+      "category": "iPad, Tablets & Laptops",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 244,
+      "timestamp": "2026-06-24T05:55:22.994Z",
+      "requestId": "bb6232a5-8ceb-41cd-8d3c-306805638663",
+      "isFirst": true
+    },
+    {
+      "query": "mobile",
+      "normalised": "mobile",
+      "productId": "685d111e6c133a7412a0a910",
+      "productName": "Tug Quad 1.5M 4 In 1 Cable Black (Quadtugblk )Mobile Cables",
+      "correction": "chargers or cables",
+      "aggregationKey": "chargers or cables",
+      "category": "Chargers Or Cables  ",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 330,
+      "timestamp": "2026-06-24T05:55:51.570Z",
+      "requestId": "a346f249-9975-4a20-87d9-003b5b406d40",
+      "isFirst": true
+    },
+    {
+      "query": "mobile",
+      "normalised": "mobile",
+      "productId": "6888bc8a93bea814c61cf7a7",
+      "productName": "iPad 11 Inch Wi-Fi + Cellular 128GB (Blue)",
+      "correction": "ipad tablets laptops",
+      "aggregationKey": "ipad tablets laptops",
+      "category": "iPad, Tablets & Laptops",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 330,
+      "timestamp": "2026-06-24T05:55:53.175Z",
+      "requestId": "f89151f5-5d96-4922-a14f-32a13b2cfcf6",
+      "isFirst": true
+    },
+    {
+      "query": "mobile",
+      "normalised": "mobile",
+      "productId": "685684c36c133a7412a04499",
+      "productName": "Moto Edge 60 Stylus 5G (Pantone Gibraltar Sea, 8GB + 256 GB)",
+      "correction": "motorola",
+      "aggregationKey": "motorola",
+      "category": "Motorola",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 330,
+      "timestamp": "2026-06-24T05:55:59.549Z",
+      "requestId": "869e9446-3708-4186-8859-161c939fe881",
+      "isFirst": true
+    },
+    {
+      "query": "phone",
+      "normalised": "phone",
+      "productId": "685e23a66c133a7412a0c398",
+      "productName": "Nokia 150 DS (Blue) Keypad Phone",
+      "correction": "nokia",
+      "aggregationKey": "nokia",
+      "category": "Nokia",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 56,
+      "timestamp": "2026-06-24T05:56:51.461Z",
+      "requestId": "0a1254f5-bb97-4cce-a772-39a27c381932",
+      "isFirst": true
+    },
+    {
+      "query": "milk",
+      "normalised": "milk",
+      "productId": "6787af9ba4527322bcd99db9",
+      "productName": "Milky Misty Paneer",
+      "correction": "butter cheese and paneer",
+      "aggregationKey": "butter cheese and paneer",
+      "category": "Butter, Cheese and Paneer",
+      "subcategory": null,
+      "clientId": "137",
+      "originalResultCount": 364,
+      "timestamp": "2026-06-24T07:13:21.023Z",
+      "requestId": "b41801c0-77d3-4b01-ae43-fde9414e3f8d",
+      "isFirst": true
+    },
+    {
+      "query": "dry fruits",
+      "normalised": "dry fruits",
+      "productId": "68370dc86ce31ba81d87a18b",
+      "productName": "DRY DATES BIG 250 GMS",
+      "correction": "dry fruits",
+      "aggregationKey": "dry fruits",
+      "category": "DRY FRUITS",
+      "subcategory": null,
+      "clientId": "226",
+      "originalResultCount": 24,
+      "timestamp": "2026-06-24T10:49:32.670Z",
+      "requestId": "9645f92e-39d9-45ca-9252-918f0176ba61",
+      "isFirst": true
+    },
+    {
+      "query": "dry fruits",
+      "normalised": "dry fruits",
+      "productId": "6838027c78bb226251118159",
+      "productName": "SUNFLOWER SEEDS 250 GMS",
+      "correction": "dry fruits",
+      "aggregationKey": "dry fruits",
+      "category": "DRY FRUITS",
+      "subcategory": null,
+      "clientId": "226",
+      "originalResultCount": 24,
+      "timestamp": "2026-06-24T10:49:34.200Z",
+      "requestId": "a9fce22d-6ac2-4791-8a64-60b32564d8bc",
+      "isFirst": true
+    },
+    {
+      "query": "paad",
+      "normalised": "paad",
+      "productId": "685e87db6c133a7412a0cb65",
+      "productName": "Realme Pad 2 Lite LTE (4GB + 128GB, Nebula Purple)",
+      "correction": "ipad tablets laptops",
+      "aggregationKey": "ipad tablets laptops",
+      "category": "Ipad, Tablets & Laptops",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 61,
+      "timestamp": "2026-06-26T10:52:29.615Z",
+      "requestId": "d02a883f-a0aa-4af5-9691-247d1a439622",
+      "isFirst": true
+    },
+    {
+      "query": "Vivo Y300 5G (Phantom Purple, 8GB + 256 GB)",
+      "normalised": "vivo y300 5g phantom purple 8gb 256 gb",
+      "productId": "68567fc56c133a7412a0445e",
+      "productName": "Vivo Y300 5G (Phantom Purple, 8GB + 256 GB)",
+      "correction": "vivo",
+      "aggregationKey": "vivo",
+      "category": "Vivo",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 38,
+      "timestamp": "2026-06-29T10:21:23.425Z",
+      "requestId": "0bbd5aa3-de47-4f32-a80e-c76e726e7355",
+      "isFirst": true
+    },
+    {
+      "query": "nutcafe",
+      "normalised": "nutcafe",
+      "productId": "6787b064a4527322bcd9a2a5",
+      "productName": "Nescafe ",
+      "correction": "tea and coffee",
+      "aggregationKey": "tea and coffee",
+      "category": "Tea and Coffee",
+      "subcategory": null,
+      "clientId": "137",
+      "originalResultCount": 17,
+      "timestamp": "2026-06-29T10:26:54.635Z",
+      "requestId": "836efe44-3a5c-4ab8-b921-1d2da97cfa15",
+      "isFirst": true
+    },
+    {
+      "query": "Laptops",
+      "normalised": "laptops",
+      "productId": "6888bcac93bea814c61cf7e1",
+      "productName": "iPad Air 13 Inch Wi-Fi 512GB (Purple)",
+      "correction": "ipad tablets laptops",
+      "aggregationKey": "ipad tablets laptops",
+      "category": "iPad, Tablets & Laptops",
+      "subcategory": null,
+      "clientId": "198",
+      "originalResultCount": 244,
+      "timestamp": "2026-06-30T07:13:08.840Z",
+      "requestId": "64a3bbc7-a3f4-4937-ba61-19c4a9e593a3",
+      "isFirst": true
+    }
+  ],
+  "aggregated": {
+    "watch": {
+      "smart watch": {
+        "count": 3,
+        "correction": "smart watch",
+        "category": "Smart Watch",
+        "subcategory": null,
+        "originalResultCount": 104,
+        "categories": {
+          "Smart Watch": 3
+        },
+        "lastSeen": "2026-06-23T13:06:20.679Z"
+      }
+    },
+    "laptop": {
+      "ipad tablets laptops": {
+        "count": 3,
+        "correction": "ipad tablets laptops",
+        "category": "Ipad, Tablets & Laptops",
+        "subcategory": null,
+        "originalResultCount": 244,
+        "categories": {
+          "Ipad, Tablets & Laptops": 1,
+          "iPad, Tablets & Laptops": 2
+        },
+        "lastSeen": "2026-06-24T05:55:22.994Z"
+      }
+    },
+    "mobile": {
+      "chargers or cables": {
+        "count": 1,
+        "correction": "chargers or cables",
+        "category": "Chargers Or Cables  ",
+        "subcategory": null,
+        "originalResultCount": 330,
+        "categories": {
+          "Chargers Or Cables  ": 1
+        },
+        "lastSeen": "2026-06-24T05:55:51.570Z"
+      },
+      "ipad tablets laptops": {
+        "count": 1,
+        "correction": "ipad tablets laptops",
+        "category": "iPad, Tablets & Laptops",
+        "subcategory": null,
+        "originalResultCount": 330,
+        "categories": {
+          "iPad, Tablets & Laptops": 1
+        },
+        "lastSeen": "2026-06-24T05:55:53.175Z"
+      },
+      "motorola": {
+        "count": 1,
+        "correction": "motorola",
+        "category": "Motorola",
+        "subcategory": null,
+        "originalResultCount": 330,
+        "categories": {
+          "Motorola": 1
+        },
+        "lastSeen": "2026-06-24T05:55:59.549Z"
+      }
+    },
+    "phone": {
+      "nokia": {
+        "count": 1,
+        "correction": "nokia",
+        "category": "Nokia",
+        "subcategory": null,
+        "originalResultCount": 56,
+        "categories": {
+          "Nokia": 1
+        },
+        "lastSeen": "2026-06-24T05:56:51.461Z"
+      }
+    },
+    "milk": {
+      "butter cheese and paneer": {
+        "count": 1,
+        "correction": "butter cheese and paneer",
+        "category": "Butter, Cheese and Paneer",
+        "subcategory": null,
+        "originalResultCount": 364,
+        "categories": {
+          "Butter, Cheese and Paneer": 1
+        },
+        "lastSeen": "2026-06-24T07:13:21.023Z"
+      }
+    },
+    "dry fruits": {
+      "dry fruits": {
+        "count": 2,
+        "correction": "dry fruits",
+        "category": "DRY FRUITS",
+        "subcategory": null,
+        "originalResultCount": 24,
+        "categories": {
+          "DRY FRUITS": 2
+        },
+        "lastSeen": "2026-06-24T10:49:34.200Z"
+      }
+    },
+    "paad": {
+      "ipad tablets laptops": {
+        "count": 1,
+        "correction": "ipad tablets laptops",
+        "category": "Ipad, Tablets & Laptops",
+        "subcategory": null,
+        "originalResultCount": 61,
+        "categories": {
+          "Ipad, Tablets & Laptops": 1
+        },
+        "lastSeen": "2026-06-26T10:52:29.615Z"
+      }
+    },
+    "vivo y300 5g phantom purple 8gb 256 gb": {
+      "vivo": {
+        "count": 1,
+        "correction": "vivo",
+        "category": "Vivo",
+        "subcategory": null,
+        "originalResultCount": 38,
+        "categories": {
+          "Vivo": 1
+        },
+        "lastSeen": "2026-06-29T10:21:23.425Z"
+      }
+    },
+    "nutcafe": {
+      "tea and coffee": {
+        "count": 1,
+        "correction": "tea and coffee",
+        "category": "Tea and Coffee",
+        "subcategory": null,
+        "originalResultCount": 17,
+        "categories": {
+          "Tea and Coffee": 1
+        },
+        "lastSeen": "2026-06-29T10:26:54.635Z"
+      }
+    },
+    "laptops": {
+      "ipad tablets laptops": {
+        "count": 1,
+        "correction": "ipad tablets laptops",
+        "category": "iPad, Tablets & Laptops",
+        "subcategory": null,
+        "originalResultCount": 244,
+        "categories": {
+          "iPad, Tablets & Laptops": 1
+        },
+        "lastSeen": "2026-06-30T07:13:08.840Z"
+      }
+    }
+  }
+}

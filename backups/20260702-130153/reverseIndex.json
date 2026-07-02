@@ -1,0 +1,1291 @@
+{
+  "kurti": {
+    "variants": [
+      "kurtti",
+      "kurthi"
+    ],
+    "totalVariants": 2,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "csv",
+      "manual"
+    ]
+  },
+  "watch": {
+    "variants": [
+      "wach",
+      "wtach"
+    ],
+    "totalVariants": 2,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "csv",
+      "manual"
+    ]
+  },
+  "mobile": {
+    "variants": [
+      "moblie",
+      "moble"
+    ],
+    "totalVariants": 2,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "csv",
+      "manual"
+    ]
+  },
+  "slippers": {
+    "variants": [
+      "slipper",
+      "sliper"
+    ],
+    "totalVariants": 2,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "csv",
+      "manual"
+    ]
+  },
+  "cycle": {
+    "variants": [
+      "cycyle"
+    ],
+    "totalVariants": 1,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "csv",
+      "manual"
+    ]
+  },
+  "laptop": {
+    "variants": [
+      "labtop",
+      "leptoop",
+      "laptap",
+      "laptp",
+      "leptop"
+    ],
+    "totalVariants": 5,
+    "totalCount": 5,
+    "confidence": 0,
+    "sources": [
+      "ollama",
+      "symspell",
+      "manual"
+    ]
+  },
+  "perfume": {
+    "variants": [
+      "perfyume",
+      "perfum"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "moisturiser": {
+    "variants": [
+      "moisteriser",
+      "moistriser"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "turmeric": {
+    "variants": [
+      "turmmeric",
+      "tumeric",
+      "turmric"
+    ],
+    "totalVariants": 3,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "ollama",
+      "manual"
+    ]
+  },
+  "bluetooth speaker": {
+    "variants": [
+      "blutetooth speeker",
+      "bluteooth speeker"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "ollama",
+      "symspell"
+    ]
+  },
+  "sunscreen": {
+    "variants": [
+      "sunscren",
+      "sunscream"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "lipstick": {
+    "variants": [
+      "lipstck",
+      "lipstik"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "facewash": {
+    "variants": [
+      "facewahs"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "detergent": {
+    "variants": [
+      "detegent",
+      "detergant",
+      "deterget"
+    ],
+    "totalVariants": 3,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "biscuits": {
+    "variants": [
+      "biscits",
+      "biscuit",
+      "biscut"
+    ],
+    "totalVariants": 3,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "chocolate": {
+    "variants": [
+      "choclate",
+      "chocolat"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "ollama",
+      "manual"
+    ]
+  },
+  "monitor": {
+    "variants": [
+      "monitur",
+      "moniter"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "keyboard": {
+    "variants": [
+      "keybord",
+      "keyborad"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "headphones": {
+    "variants": [
+      "headphnes",
+      "headphone"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "toothpaste": {
+    "variants": [
+      "toothpast"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "conditioner": {
+    "variants": [
+      "conditoner",
+      "condtioner"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "shampoo": {
+    "variants": [
+      "shapmoo",
+      "shampo"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "iphone": {
+    "variants": [
+      "eyefone",
+      "iphono",
+      "iphwone"
+    ],
+    "totalVariants": 3,
+    "totalCount": 9,
+    "confidence": null,
+    "sources": [
+      "ollama",
+      "symspell",
+      "click"
+    ]
+  },
+  "computer": {
+    "variants": [
+      "komputer",
+      "computor"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "cotton shirt for men": {
+    "variants": [
+      "coton tshrt for mens"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "ollama"
+    ]
+  },
+  "nike shoes": {
+    "variants": [
+      "nikee shooes"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "running shoes": {
+    "variants": [
+      "runng shoos"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "ollama"
+    ]
+  },
+  "wireless earbud": {
+    "variants": [
+      "wireles earbud"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "smartwatch": {
+    "variants": [
+      "smartwatsh",
+      "smarthwatch",
+      "smartwach",
+      "smrtwatch"
+    ],
+    "totalVariants": 4,
+    "totalCount": 41,
+    "confidence": null,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "bluetooth earbud wireless": {
+    "variants": [
+      "bluetoth earbud wireles"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "organic face wash": {
+    "variants": [
+      "orgnic face wash"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "cotton kurta white": {
+    "variants": [
+      "cottn kurta white"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "ollama"
+    ]
+  },
+  "running shoes nike": {
+    "variants": [
+      "runnung shoes nike"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "laptop bag 15 inch": {
+    "variants": [
+      "laptpp bag 15 inch"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "wireless keyboard mouse": {
+    "variants": [
+      "wireles keyborad mouse"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "leggings": {
+    "variants": [
+      "leggigns",
+      "legging",
+      "leggign",
+      "leggins"
+    ],
+    "totalVariants": 4,
+    "totalCount": 4,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "coriander": {
+    "variants": [
+      "corriamder",
+      "coriender",
+      "corriander"
+    ],
+    "totalVariants": 3,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "symspell",
+      "manual"
+    ]
+  },
+  "earphones": {
+    "variants": [
+      "earphone"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "speaker": {
+    "variants": [
+      "speeker",
+      "speker"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "smartphone": {
+    "variants": [
+      "smartpone",
+      "smarthpone"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "charger": {
+    "variants": [
+      "chager"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "wireless": {
+    "variants": [
+      "wirless",
+      "wirelss",
+      "wireles"
+    ],
+    "totalVariants": 3,
+    "totalCount": 3,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "kurta": {
+    "variants": [
+      "kurtha",
+      "kurtaa"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "sarees": {
+    "variants": [
+      "saari",
+      "sari"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "dupatta": {
+    "variants": [
+      "dupata"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "salwar": {
+    "variants": [
+      "shalwar"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "shawl": {
+    "variants": [
+      "shwal"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "jacket": {
+    "variants": [
+      "jaket",
+      "jakcet"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "hoodie": {
+    "variants": [
+      "hoody"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "sweatshirt": {
+    "variants": [
+      "swetshirt"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "sweater": {
+    "variants": [
+      "sweter",
+      "sweatr"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "sandals": {
+    "variants": [
+      "sandal",
+      "sandels"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "sneakers": {
+    "variants": [
+      "sneaker",
+      "sneackers"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "boots": {
+    "variants": [
+      "bots"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "heels": {
+    "variants": [
+      "hels"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "chappal": {
+    "variants": [
+      "chappals"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "coffee": {
+    "variants": [
+      "coffe",
+      "cofee"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "tea": {
+    "variants": [
+      "tee"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "masala": {
+    "variants": [
+      "masalaa"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "dal": {
+    "variants": [
+      "daal"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "paneer": {
+    "variants": [
+      "panir"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "mascara": {
+    "variants": [
+      "masacara"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "pressure": {
+    "variants": [
+      "presure"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "pressure cooker": {
+    "variants": [
+      "presurecooker"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "mixer": {
+    "variants": [
+      "mixie"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "refrigerator": {
+    "variants": [
+      "fridge"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "nike": {
+    "variants": [
+      "nikee"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "adidas": {
+    "variants": [
+      "adidass"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "levis": {
+    "variants": [
+      "levies"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "samsung": {
+    "variants": [
+      "samsng",
+      "samung"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "oneplus": {
+    "variants": [
+      "onplus"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "redmi": {
+    "variants": [
+      "rdmi"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "wallet": {
+    "variants": [
+      "walet",
+      "walllet"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "bag": {
+    "variants": [
+      "beg",
+      "bagg"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "goggles": {
+    "variants": [
+      "gogles"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "sunglasses": {
+    "variants": [
+      "sunglass",
+      "sunglases"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "belt": {
+    "variants": [
+      "blet"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "belts": {
+    "variants": [
+      "blets"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "dumbbell": {
+    "variants": [
+      "dumbel",
+      "dumbell"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "treadmill": {
+    "variants": [
+      "tredmill",
+      "treadmil"
+    ],
+    "totalVariants": 2,
+    "totalCount": 2,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "yoga mat": {
+    "variants": [
+      "yogamat"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "bicycle": {
+    "variants": [
+      "bycycle"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "manual"
+    ]
+  },
+  "laptop charger": {
+    "variants": [
+      "labtob charjer"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "smartwatch band": {
+    "variants": [
+      "smartwach band"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "mobile phone cover": {
+    "variants": [
+      "mobilfone cover"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "tablet stand": {
+    "variants": [
+      "tablett stand"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "football boots": {
+    "variants": [
+      "footbal boots"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "badminton racket": {
+    "variants": [
+      "badmintan racket"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "swimming goggles": {
+    "variants": [
+      "swimmin gogles"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "tomato sauce": {
+    "variants": [
+      "tomatoe sauce"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "green tea": {
+    "variants": [
+      "grean tea"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "chicken masala": {
+    "variants": [
+      "chickn masala"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "smartphone case": {
+    "variants": [
+      "smartfone case"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "laptop bag": {
+    "variants": [
+      "lapttop bag"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "detergent powder": {
+    "variants": [
+      "deterjent powder"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "toothpaste tube": {
+    "variants": [
+      "toothpast tube"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "tomato fresh": {
+    "variants": [
+      "tomatoe fresh"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "onion kg": {
+    "variants": [
+      "onoin kg"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "potato bag": {
+    "variants": [
+      "potatoe bag"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "vitamin c tablet": {
+    "variants": [
+      "vitamen c tablet"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "protein powder": {
+    "variants": [
+      "protien powder"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "calcium supplement": {
+    "variants": [
+      "calciam supplement"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "chicken breast": {
+    "variants": [
+      "chiken breast"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0,
+    "sources": [
+      "groq"
+    ]
+  },
+  "rice": {
+    "variants": [
+      "raice",
+      "ricee"
+    ],
+    "totalVariants": 2,
+    "totalCount": 7,
+    "confidence": null,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "basmati": {
+    "variants": [
+      "basmathi"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0.8,
+    "sources": [
+      "phonetic"
+    ]
+  },
+  "earrings": {
+    "variants": [
+      "ear ringzz"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0.8,
+    "sources": [
+      "click"
+    ]
+  },
+  "almond": {
+    "variants": [
+      "almomd"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0.85,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "ipad": {
+    "variants": [
+      "paad"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0.95,
+    "sources": [
+      "manual"
+    ]
+  },
+  "nescafe": {
+    "variants": [
+      "nutcafe"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0.85,
+    "sources": [
+      "symspell"
+    ]
+  },
+  "apple": {
+    "variants": [
+      "aple"
+    ],
+    "totalVariants": 1,
+    "totalCount": 1,
+    "confidence": 0.8,
+    "sources": [
+      "phonetic"
+    ]
+  }
+}

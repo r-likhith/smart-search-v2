@@ -1,5 +1,6 @@
 const client = require('./client');
 const { PRODUCTS_INDEX, CATEGORIES_INDEX } = require('./indexes');
+const { withRetry } = require('../resilience/withRetry');
 
 // ─── FIELDS TO RETRIEVE ───────────────────────────────────
 
@@ -89,18 +90,31 @@ async function searchProducts(query, options = {}) {
       searchParams.sort = [sortBy];
     }
 
-    const results = await client.index(indexName).search(query, searchParams);
+    const { result: results, attempts, recovered } = await withRetry(
+      () => client.index(indexName).search(query, searchParams),
+      { label: 'searchProducts', requestId: options.requestId || null }
+    );
 
     return {
       hits:           results.hits,
       totalHits:      results.estimatedTotalHits,
       processingTime: results.processingTimeMs,
-      query:          results.query
+      query:          results.query,
+      degraded:       false,
+      retryAttempts:  attempts,
+      retryRecovered: recovered
     };
 
   } catch (err) {
     console.error('Search error:', err.message);
-    return { hits: [], totalHits: 0, processingTime: 0 };
+    // structured degradation — analytics knows WHY, frontend doesn't need to ✅
+    return {
+      hits: [], totalHits: 0, processingTime: 0,
+      degraded: true,
+      degradedReason: err.degraded
+        ? `meilisearch unavailable after ${err.attempts} attempt(s)`
+        : err.message
+    };
   }
 }
 
@@ -143,11 +157,33 @@ async function getSuggestions(query, options = {}) {
       facetParams.filter = `catalogue = "${catalogue}"`;
     }
 
-    // run both in parallel ✅
-    const [productResults, facetResults] = await Promise.all([
-      client.index(indexName).search(query, productParams),
-      client.index(indexName).search(query, facetParams)
+    // run both in parallel, independently retried ✅
+    // allSettled (not all) — partial degradation is
+    // acceptable for suggest: missing category chips
+    // is harmless, an empty dropdown when products
+    // WERE available is not ✅
+    const [productsOutcome, facetsOutcome] = await Promise.allSettled([
+      withRetry(
+        () => client.index(indexName).search(query, productParams),
+        { label: 'getSuggestions:products', requestId: options.requestId || null }
+      ),
+      withRetry(
+        () => client.index(indexName).search(query, facetParams),
+        { label: 'getSuggestions:facets', requestId: options.requestId || null }
+      )
     ]);
+
+    const productResults = productsOutcome.status === 'fulfilled'
+      ? productsOutcome.value.result
+      : { hits: [] };
+
+    const facetResults = facetsOutcome.status === 'fulfilled'
+      ? facetsOutcome.value.result
+      : { facetDistribution: {} };
+
+    const partiallyDegraded =
+      productsOutcome.status === 'rejected' ||
+      facetsOutcome.status === 'rejected';
 
     // ── extract categories from facets ────────────────────
     const catalogueFacets = facetResults.facetDistribution?.catalogue || {};
@@ -229,6 +265,7 @@ async function getSuggestions(query, options = {}) {
     ];
 
     return {
+      degraded: partiallyDegraded,
       // unified list ✅ — frontend renders by type
       suggestions: unifiedSuggestions,
       // backwards compat ✅ — existing frontends still work
@@ -254,8 +291,14 @@ async function getSuggestions(query, options = {}) {
     };
 
   } catch (err) {
+    // only fires for genuine bugs outside the allSettled block —
+    // allSettled itself never rejects ✅
     console.error('Suggestion error:', err.message);
-    return { suggestions: [], products: [], categories: [] };
+    return {
+      suggestions: [], products: [], categories: [],
+      degraded: true,
+      degradedReason: err.message
+    };
   }
 }
 
@@ -286,36 +329,57 @@ async function navigateCategory(category, subcategory, options = {}) {
     if (minPrice)    filters.push(`price >= ${minPrice}`);
     if (maxPrice)    filters.push(`price <= ${maxPrice}`);
 
-    const results = await client.index(indexName).search('', {
-      filter: filters.join(' AND '),
-      sort:   [sortBy],
-      limit,
-      attributesToRetrieve: PRODUCT_FIELDS
-    });
+    const { result: results } = await withRetry(
+      () => client.index(indexName).search('', {
+        filter: filters.join(' AND '),
+        sort:   [sortBy],
+        limit,
+        attributesToRetrieve: PRODUCT_FIELDS
+      }),
+      { label: 'navigateCategory', requestId: options.requestId || null }
+    );
 
     return {
       hits:      results.hits,
       totalHits: results.estimatedTotalHits,
       category,
-      subcategory
+      subcategory,
+      degraded:  false
     };
 
   } catch (err) {
     console.error('Navigation error:', err.message);
-    return { hits: [], totalHits: 0 };
+    return {
+      hits: [], totalHits: 0,
+      degraded: true,
+      degradedReason: err.degraded
+        ? `meilisearch unavailable after ${err.attempts} attempt(s)`
+        : err.message
+    };
   }
 }
 
 // ─── POPULAR FALLBACK ─────────────────────────────────────
+//
+// NOTE: this function makes MULTIPLE SEQUENTIAL Meili calls
+// (one stats call + one per top category, in a loop). Each
+// call is independently retry-wrapped below, so a transient
+// hiccup on category #3's call doesn't discard the hits
+// already collected from categories #1 and #2 — partial
+// results degrade gracefully rather than the whole function
+// failing because of one slow category. ✅
 
-async function getPopularProducts(limit = 10, meiliIndex = null) {
+async function getPopularProducts(limit = 10, meiliIndex = null, options = {}) {
   try {
     const indexName = meiliIndex || PRODUCTS_INDEX;
 
-    const statsResult = await client.index(indexName).search('', {
-      limit:  0,
-      facets: ['catalogue']
-    });
+    const { result: statsResult } = await withRetry(
+      () => client.index(indexName).search('', {
+        limit:  0,
+        facets: ['catalogue']
+      }),
+      { label: 'getPopularProducts:stats', requestId: options.requestId || null }
+    );
 
     const facets        = statsResult.facetDistribution?.catalogue || {};
     const topCategories = Object.entries(facets)
@@ -324,24 +388,40 @@ async function getPopularProducts(limit = 10, meiliIndex = null) {
       .map(([cat]) => cat);
 
     if (topCategories.length === 0) {
-      const r = await client.index(indexName).search('', {
-        limit,
-        attributesToRetrieve: PRODUCT_FIELDS_MINIMAL
-      });
+      const { result: r } = await withRetry(
+        () => client.index(indexName).search('', {
+          limit,
+          attributesToRetrieve: PRODUCT_FIELDS_MINIMAL
+        }),
+        { label: 'getPopularProducts:flat', requestId: options.requestId || null }
+      );
       return r.hits.map(h => ({ ...h, type: 'fallback' }));
     }
 
     const perCategory = Math.ceil(limit / topCategories.length);
     const allHits     = [];
 
+    // sequential by design (existing behavior preserved) —
+    // each iteration independently retried, so one category's
+    // transient failure doesn't discard hits already gathered
+    // from prior categories in this loop ✅
     for (const cat of topCategories) {
       if (allHits.length >= limit) break;
-      const r = await client.index(indexName).search('', {
-        limit:  perCategory,
-        filter: `catalogue = "${cat}"`,
-        attributesToRetrieve: PRODUCT_FIELDS_MINIMAL
-      });
-      allHits.push(...r.hits);
+      try {
+        const { result: r } = await withRetry(
+          () => client.index(indexName).search('', {
+            limit:  perCategory,
+            filter: `catalogue = "${cat}"`,
+            attributesToRetrieve: PRODUCT_FIELDS_MINIMAL
+          }),
+          { label: `getPopularProducts:${cat}`, requestId: options.requestId || null }
+        );
+        allHits.push(...r.hits);
+      } catch (catErr) {
+        // one category failing shouldn't abort the whole
+        // fallback — log and continue with what we have ✅
+        console.error(`Popular products — category "${cat}" failed:`, catErr.message);
+      }
     }
 
     return allHits
