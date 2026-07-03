@@ -19,6 +19,7 @@ const { loadBrands } = require('./src/query/intentParser');
 const meiliClient = require('./src/meilisearch/client');
 const { aggregate, replayQuery } = require('./analytics/aggregator');
 const config = require('./src/config');
+const { loadKeys, validateKey, persistKeys, getAllKeys } = require('./src/auth/apiKeyManager');
 
 // ─── CONFIG VALIDATION ────────────────────────────────────
 // Fail immediately with a clear message if any required
@@ -58,7 +59,6 @@ function runBackup(reason = 'scheduled') {
     } else {
       console.log(`[Backup] ✅ Complete (${reason}, ${Date.now() - start}ms)`);
       if (stdout) {
-        // only log the summary line, not every file ✅
         const summary = stdout.split('\n').find(l => l.includes('Backup complete'));
         if (summary) console.log(`[Backup] ${summary.trim()}`);
       }
@@ -119,13 +119,50 @@ morgan.token('id', (req, res) => res.locals.requestId || '-');
 app.use(morgan(':id :method :url :status :response-time ms'));
 
 // ─── API KEY AUTH ─────────────────────────────────────────
+// Per-client keys — clientId injected from key, not body ✅
+// Legacy shared key (searchapikey123) still works ✅
+// clientId in body that mismatches key → rejected ✅
 
 function checkApiKey(req, res, next) {
   const apiKey = req.headers['x-api-key'];
-  if (!apiKey || apiKey !== config.apiKey) {
-    return next(new AuthError('Invalid or missing API key'));
+  if (!apiKey) {
+    return next(new AuthError('Missing API key'));
   }
+
+  const origin       = req.headers['origin'] || req.headers['referer'] || null;
+  const clientConfig = validateKey(apiKey, origin);
+
+  if (!clientConfig) {
+    return next(new AuthError('Invalid or disabled API key'));
+  }
+
+  // inject clientId from key — client does NOT need to send clientId ✅
+  req.resolvedClientId     = clientConfig.clientId;
+  req.resolvedClientConfig = clientConfig;
+
+  // reject if clientId in body mismatches key's clientId ✅
+  // prevents confusion where developer sends wrong clientId
+  // legacy key has clientId: null — skip this check for it ✅
+  const bodyClientId = req.body?.clientId;
+  if (
+    bodyClientId &&
+    clientConfig.clientId &&
+    String(bodyClientId) !== String(clientConfig.clientId)
+  ) {
+    return next(new AuthError(
+      `clientId in request body (${bodyClientId}) does not match API key — remove clientId from body`
+    ));
+  }
+
   next();
+}
+
+// ─── PERMISSION CHECK HELPER ──────────────────────────────
+// used by admin endpoints to verify permission ✅
+// returns true if permitted, false otherwise ✅
+
+function hasPermission(req, permission) {
+  return req.resolvedClientConfig?.permissions?.[permission] === true;
 }
 
 // ─── SUCCESS RATE HELPER ──────────────────────────────────
@@ -303,6 +340,10 @@ app.get('/api/analytics', checkApiKey, (req, res) => {
 
 app.get('/api/admin/recent-activity', checkApiKey, (req, res) => {
   try {
+    if (!hasPermission(req, 'admin')) {
+      return res.status(403).json({ success: false, error: 'Admin permission required' });
+    }
+
     const limit          = Math.min(parseInt(req.query.limit || '50'), 200);
     const filterClient   = req.query.clientId   || null;
     const filterLayer    = req.query.layer       || null;
@@ -420,14 +461,16 @@ app.post('/api/sync/trigger', checkApiKey, (req, res) => {
 
 app.post('/api/admin/reload', checkApiKey, (req, res) => {
   try {
-    // backup before reload — protects against accidentally
-    // overwriting good data with a bad learnedMap ✅
-    // non-blocking: reload proceeds regardless of backup
-    // outcome — we never block an admin action for a backup ✅
+    if (!hasPermission(req, 'admin')) {
+      return res.status(403).json({ success: false, error: 'Admin permission required' });
+    }
+
+    // backup before reload ✅
     runBackup('pre-reload');
 
     loadMap();
     loadSuggestMap();
+    loadKeys(); // reload API keys too ✅
     const stats        = getStats();
     const suggestStats = getSuggestStats();
     console.log('[Admin] Maps reloaded ✅');
@@ -452,10 +495,33 @@ app.post('/api/admin/reload', checkApiKey, (req, res) => {
   }
 });
 
+// ─── ADMIN: LIST API KEYS ─────────────────────────────────
+// returns key previews only — never full keys ✅
+// admin permission required ✅
+
+app.get('/api/admin/keys', checkApiKey, (req, res) => {
+  try {
+    if (!hasPermission(req, 'admin')) {
+      return res.status(403).json({ success: false, error: 'Admin permission required' });
+    }
+    return res.json({
+      success:   true,
+      timestamp: new Date().toISOString(),
+      keys:      getAllKeys()
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // ─── ADMIN: CORRECTIONS DASHBOARD ────────────────────────
 
 app.get('/api/admin/corrections', checkApiKey, (req, res) => {
   try {
+    if (!hasPermission(req, 'admin')) {
+      return res.status(403).json({ success: false, error: 'Admin permission required' });
+    }
+
     const stats = getStats();
     const map   = JSON.parse(
       fs.readFileSync('./learned/learnedMap.json', 'utf8')
@@ -589,11 +655,13 @@ let server;
 
 process.on('SIGINT', () => {
   console.log('\nShutting down gracefully...');
+  persistKeys(); // flush lastUsed before exit ✅
   server.close(() => { console.log('Server closed.'); process.exit(0); });
 });
 
 process.on('SIGTERM', () => {
   console.log('\nShutting down gracefully...');
+  persistKeys(); // flush lastUsed before exit ✅
   server.close(() => { console.log('Server closed.'); process.exit(0); });
 });
 
@@ -621,6 +689,9 @@ async function checkOllama() {
 async function start() {
   try {
     // env vars already validated at top of file ✅
+
+    // ── load per-client API keys ───────────────────────
+    loadKeys();
 
     await createIndexes();
     console.log('Meilisearch indexes ready');
@@ -727,6 +798,9 @@ async function start() {
       console.log(`Running at http://localhost:${config.port}`);
       console.log(`\nEndpoints:`);
       console.log(`GET  /api/health`);
+      console.log(`GET  /api/health/live`);
+      console.log(`GET  /api/health/ready`);
+      console.log(`GET  /api/health/deep`);
       console.log(`POST /api/search`);
       console.log(`GET  /api/suggest?q=`);
       console.log(`POST /api/navigate`);
@@ -740,6 +814,7 @@ async function start() {
       console.log(`GET  /api/sync/status`);
       console.log(`POST /api/sync/trigger`);
       console.log(`POST /api/admin/reload`);
+      console.log(`GET  /api/admin/keys`);
       console.log(`GET  /api/admin/corrections`);
       console.log(`GET  /api/admin/recent-activity`);
       console.log(`\nPages:`);
@@ -748,12 +823,14 @@ async function start() {
       console.log(`GET  /demos         → Client Demo Pages`);
 
       // ── nightly backup scheduler ──────────────────────
-      // Docker-native: works identically on laptop and
-      // Oracle VM without any host-level cron config ✅
-      // 24h interval resets on container restart —
-      // acceptable at current scale ✅
       setInterval(() => runBackup('scheduled'), 24 * 60 * 60 * 1000);
       console.log('\n[Backup] Scheduler started — runs every 24h ✅');
+
+      // ── persist lastUsed every 5 minutes ──────────────
+      // keeps key usage data fresh without writing on
+      // every single request ✅
+      setInterval(() => persistKeys(), 5 * 60 * 1000);
+      console.log('[ApiKeys] lastUsed flush scheduled — every 5min ✅');
     });
 
   } catch (err) {

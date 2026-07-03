@@ -21,7 +21,7 @@ const ALLOWED_SORT = [
 router.post('/', async (req, res, next) => {
   const {
     query,
-    clientId,
+    clientId: bodyClientId,  // renamed — resolved below ✅
     catalogue,
     category,
     subcategory,
@@ -51,9 +51,16 @@ router.post('/', async (req, res, next) => {
       return next(new ValidationError('Query too long'));
     }
 
-    // ── ClientId validation ───────────────────────────────
+    // ── ClientId resolution ───────────────────────────────
+    // per-client key:  clientId injected from API key (req.resolvedClientId) ✅
+    // legacy key:      clientId comes from request body (backward compat) ✅
+    // per-client key + mismatched body clientId: already rejected by checkApiKey ✅
+    const clientId = req.resolvedClientId || bodyClientId;
+
     if (!clientId) {
-      return next(new ValidationError('clientId is required'));
+      return next(new ValidationError(
+        'clientId is required — use a per-client API key or include clientId in the request body'
+      ));
     }
     if (!isValidClient(clientId)) {
       return next(new ValidationError(`Unknown or inactive clientId: ${clientId}`));
@@ -97,11 +104,11 @@ router.post('/', async (req, res, next) => {
     // ── Resolve client index + scope ──────────────────────
     const meiliIndex  = getClientIndex(clientId);
     const clientInfo  = getClient(clientId);
-    const clientScope = getClientScope(clientId); // ← scope for context ✅
+    const clientScope = getClientScope(clientId);
 
     const result = await runSearch(query, {
       clientId,
-      clientScope,    // ← passed to applyCorrection + penalise ✅
+      clientScope,
       meiliIndex,
       catalogue,
       category,
@@ -130,11 +137,9 @@ router.post('/', async (req, res, next) => {
         normalised:           normalisedQuery,
         correctedQuery:       result.correctedQuery       || null,
         appliedCorrection:    result.wasCorrected         || false,
-        // correction details ✅
         correctionSource:     result.correctionSource     || null,
         correctionMode:       result.correctionMode       || 'none',
         correctionConfidence: result.correctionConfidence || null,
-        // filters ✅
         catalogue:            catalogue    || null,
         category:             category     || null,
         subcategory:          subcategory  || null,
@@ -142,11 +147,9 @@ router.post('/', async (req, res, next) => {
         brand:                brand        || null,
         color:                color        || null,
         size:                 size         || null,
-        // results ✅
         results:              result.totalHits    || 0,
         isFallback:           result.isFallback   || false,
         processingTime:       result.processingTime || 0,
-        // intent ✅
         intentFilters:        result.intentFilters    || null,
         intentCleanQuery:     result.intentCleanQuery || null
       });
@@ -172,21 +175,16 @@ router.post('/', async (req, res, next) => {
     return successResponse(res, buildSearchResponse({
       originalQuery:        query,
       normalisedQuery,
-      // backwards compat ✅
       correctedQuery:       result.correctedQuery       || null,
       wasCorrected:         result.wasCorrected         || false,
       correctionConfidence: result.correctionConfidence || null,
       correctionSource:     result.correctionSource     || null,
-      // query lifecycle ✅
       displayQuery:         result.displayQuery         || null,
       retrievalQuery:       result.retrievalQuery       || null,
       correctionMode:       result.correctionMode       || 'none',
-      // ui hints ✅
       ui:                   result.ui                   || null,
-      // intent ✅
       intentFilters:        result.intentFilters        || null,
       intentCleanQuery:     result.intentCleanQuery     || null,
-      // results ✅
       totalHits:            result.totalHits,
       processingTime:       result.processingTime,
       isFallback:           result.isFallback,

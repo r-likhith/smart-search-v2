@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "keys": {
+    "your-legacy-shared-key": {
+      "clientId": null,
+      "name": "Legacy shared key",
+      "status": "active",
+      "permissions": {
+        "search": true,
+        "suggest": true,
+        "analytics": true,
+        "admin": true
+      },
+      "allowedOrigins": [],
+      "rateLimit": 100,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "lastUsed": null,
+      "lastOrigin": null,
+      "note": "Backward compat — deprecate once all clients have individual keys"
+    },
+    "sk_live_your_generated_key_here": {
+      "clientId": "198",
+      "name": "Client Name",
+      "status": "active",
+      "permissions": {
+        "search": true,
+        "suggest": true,
+        "analytics": false,
+        "admin": false
+      },
+      "allowedOrigins": ["https://client.com"],
+      "rateLimit": 100,
+      "createdAt": "2026-01-01T00:00:00Z",
+      "lastUsed": null,
+      "lastOrigin": null
+    }
+  }
+}

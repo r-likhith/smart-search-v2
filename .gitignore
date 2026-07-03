@@ -38,3 +38,5 @@ data.ms/
 # seed files — committed intentionally ✅
 !learned/*.seed.json
 backups/
+config/apiKeys.json
+config/apiKeys.json.tmp

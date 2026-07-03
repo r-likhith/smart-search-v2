@@ -17,7 +17,7 @@ const ALLOWED_SORT = [
 
 router.post('/', async (req, res, next) => {
   const {
-    clientId,           // ← NEW: required for multi-tenant ✅
+    clientId: bodyClientId,  // renamed — resolved below ✅
     category,
     subcategory,
     subCategory,
@@ -32,9 +32,16 @@ router.post('/', async (req, res, next) => {
   } = req.body;
 
   try {
-    // ── ClientId validation ───────────────────────────────
+    // ── ClientId resolution ───────────────────────────────
+    // per-client key:  clientId injected from API key ✅
+    // legacy key:      clientId comes from request body ✅
+    const clientId = req.resolvedClientId || bodyClientId;
+
     if (!clientId) {
-      return errorResponse(res, 'clientId is required', 400);
+      return errorResponse(res,
+        'clientId is required — use a per-client API key or include clientId in the request body',
+        400
+      );
     }
     if (!isValidClient(clientId)) {
       return errorResponse(res, `Unknown or inactive clientId: ${clientId}`, 400);
@@ -95,7 +102,7 @@ router.post('/', async (req, res, next) => {
     // ── Run navigation ────────────────────────────────────
     const result = await runNavigate(category, subcategory, {
       clientId,
-      meiliIndex,         // ← routes to correct index ✅
+      meiliIndex,
       subCategory,
       brand,
       color,
