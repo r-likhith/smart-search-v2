@@ -718,80 +718,47 @@ async function runPhase5Checks() {
   // ── Phase 4: promotion engine ─────────────────────────
   console.log('\n▸ Phase 4: Promotion engine');
 
-  check('TRUSTED_THRESHOLD in learnedMap',
-    learnedMapSrc.includes('TRUSTED_THRESHOLD'));
-  check('PROVEN_THRESHOLD in learnedMap',
-    learnedMapSrc.includes('PROVEN_THRESHOLD'));
-  check('REENABLE_CLICKS in learnedMap',
-    learnedMapSrc.includes('REENABLE_CLICKS'));
-  check('getPromotedStatus exists',
-    learnedMapSrc.includes('function getPromotedStatus'));
-  check('promotion fires in saveCorrection',
-    learnedMapSrc.includes('getPromotedStatus(entry)'));
-  check('lastPromotedAt tracked',
-    learnedMapSrc.includes('lastPromotedAt'));
+  check('TRUSTED_THRESHOLD in learnedMap',  learnedMapSrc.includes('TRUSTED_THRESHOLD'));
+  check('PROVEN_THRESHOLD in learnedMap',   learnedMapSrc.includes('PROVEN_THRESHOLD'));
+  check('REENABLE_CLICKS in learnedMap',    learnedMapSrc.includes('REENABLE_CLICKS'));
+  check('getPromotedStatus exists',         learnedMapSrc.includes('function getPromotedStatus'));
+  check('promotion fires in saveCorrection',learnedMapSrc.includes('getPromotedStatus(entry)'));
+  check('lastPromotedAt tracked',           learnedMapSrc.includes('lastPromotedAt'));
   check('proven protected from penalisation',
     learnedMapSrc.includes("status === 'proven'") &&
     learnedMapSrc.includes('protected — status: proven'));
-  check('new entries get candidate status',
-    learnedMapSrc.includes("status:      'candidate'"));
-  check('pendingMapSave prevents data loss',
-    learnedMapSrc.includes('pendingMapSave'));
-  check('pendingIndexSave prevents data loss',
-    learnedMapSrc.includes('pendingIndexSave'));
-  check('promotedLast7Days in getStats',
-    learnedMapSrc.includes('promotedLast7Days'));
+  check('new entries get candidate status', learnedMapSrc.includes("status:      'candidate'"));
+  check('pendingMapSave prevents data loss',learnedMapSrc.includes('pendingMapSave'));
+  check('pendingIndexSave prevents data loss', learnedMapSrc.includes('pendingIndexSave'));
+  check('promotedLast7Days in getStats',    learnedMapSrc.includes('promotedLast7Days'));
 
   // ── Phase 4: admin endpoints ──────────────────────────
   console.log('\n▸ Phase 4: Admin endpoints');
 
-  check('reload endpoint exists',
-    serverSrc.includes('/api/admin/reload'));
-  check('corrections endpoint exists',
-    serverSrc.includes('/api/admin/corrections'));
-  check('reload calls loadMap',
-    serverSrc.includes('loadMap()'));
-  check('reload calls loadSuggestMap',
-    serverSrc.includes('loadSuggestMap()'));
-  check('dashboard shows topCorrections',
-    serverSrc.includes('topCorrections'));
-  check('dashboard shows groqCandidates',
-    serverSrc.includes('groqCandidates'));
-  check('dashboard shows disabledEntries',
-    serverSrc.includes('disabledEntries'));
-  check('dashboard shows promotedLast7Days',
-    serverSrc.includes('promotedLast7Days'));
-  check('dashboard has calcSuccessRate helper',
-    serverSrc.includes('calcSuccessRate'));
+  check('reload endpoint exists',           serverSrc.includes('/api/admin/reload'));
+  check('corrections endpoint exists',      serverSrc.includes('/api/admin/corrections'));
+  check('reload calls loadMap',             serverSrc.includes('loadMap()'));
+  check('reload calls loadSuggestMap',      serverSrc.includes('loadSuggestMap()'));
+  check('dashboard shows topCorrections',   serverSrc.includes('topCorrections'));
+  check('dashboard shows groqCandidates',   serverSrc.includes('groqCandidates'));
+  check('dashboard shows disabledEntries',  serverSrc.includes('disabledEntries'));
+  check('dashboard shows promotedLast7Days',serverSrc.includes('promotedLast7Days'));
+  check('dashboard has calcSuccessRate helper', serverSrc.includes('calcSuccessRate'));
   check('dashboard shows successRate in topCorrections',
     serverSrc.includes('successRate: calcSuccessRate'));
-  check('dashboard shows lowestSuccessRate',
-    serverSrc.includes('lowestSuccessRate'));
-  check('dashboard shows avgSuccessRate',
-    serverSrc.includes('avgSuccessRate'));
-  // sourcePerformance ✅
-  check('server has calcSourcePerformance helper',
-    serverSrc.includes('calcSourcePerformance'));
+  check('dashboard shows lowestSuccessRate',serverSrc.includes('lowestSuccessRate'));
+  check('dashboard shows avgSuccessRate',   serverSrc.includes('avgSuccessRate'));
+  check('server has calcSourcePerformance helper', serverSrc.includes('calcSourcePerformance'));
   check('server computes sourcePerformance',
     serverSrc.includes('sourcePerformance = calcSourcePerformance'));
-  check('server returns sourcePerformance in response',
-    serverSrc.includes("sourcePerformance,"));
-  check('sourcePerformance tracks withTraffic',
-    serverSrc.includes('withTraffic'));
-  check('sourcePerformance tracks neverUsed',
-    serverSrc.includes('neverUsed'));
-  // recent activity endpoint ✅
-  check('recent-activity endpoint exists',
-    serverSrc.includes('/api/admin/recent-activity'));
-  check('readRecentActivity helper exists',
-    serverSrc.includes('readRecentActivity'));
-  check('buildWhyString helper exists',
-    serverSrc.includes('buildWhyString'));
-  check('recent-activity has filters',
-    serverSrc.includes('correctionOnly'));
-  check('recent-activity has layerBreakdown',
-    serverSrc.includes('layerBreakdown'));
-
+  check('server returns sourcePerformance in response', serverSrc.includes("sourcePerformance,"));
+  check('sourcePerformance tracks withTraffic', serverSrc.includes('withTraffic'));
+  check('sourcePerformance tracks neverUsed',   serverSrc.includes('neverUsed'));
+  check('recent-activity endpoint exists',      serverSrc.includes('/api/admin/recent-activity'));
+  check('readRecentActivity helper exists',     serverSrc.includes('readRecentActivity'));
+  check('buildWhyString helper exists',         serverSrc.includes('buildWhyString'));
+  check('recent-activity has filters',          serverSrc.includes('correctionOnly'));
+  check('recent-activity has layerBreakdown',   serverSrc.includes('layerBreakdown'));
 
   // ── Phase 4: scope context ────────────────────────────
   console.log('\n▸ Phase 4: Scope context');
@@ -803,17 +770,14 @@ async function runPhase5Checks() {
     learnedMapSrc.includes('penaliseCorrection(originalQuery, context = {})'));
   check('cross-client penalty detection exists',
     learnedMapSrc.includes('Cross-client penalty detected'));
-  check('lastPenalisedByClient tracked',
-    learnedMapSrc.includes('lastPenalisedByClient'));
-  check('lastPenalisedAt tracked',
-    learnedMapSrc.includes('lastPenalisedAt'));
+  check('lastPenalisedByClient tracked',  learnedMapSrc.includes('lastPenalisedByClient'));
+  check('lastPenalisedAt tracked',        learnedMapSrc.includes('lastPenalisedAt'));
   check('queryRunner passes context to applyCorrection',
     queryRunner.includes('clientId:    options.clientId') &&
     queryRunner.includes('clientScope: options.clientScope'));
   check('queryRunner passes context to penalise',
     queryRunner.includes('penaliseCorrection(query, {'));
-  check('dashboard shows crossClientRisks',
-    serverSrc.includes('crossClientRisks'));
+  check('dashboard shows crossClientRisks', serverSrc.includes('crossClientRisks'));
 
   // ── scope wiring ──────────────────────────────────────
   console.log('\n▸ Scope wiring');
@@ -823,18 +787,12 @@ async function runPhase5Checks() {
   const suggestApi   = fs.readFileSync('./src/api/suggest.js', 'utf8');
   const behaviourApi = fs.readFileSync('./src/api/behaviour.js', 'utf8');
 
-  check('clientHelper has getClientScope',
-    clientHelper.includes('function getClientScope'));
-  check('search.js imports getClientScope',
-    searchApi.includes('getClientScope'));
-  check('search.js passes clientScope',
-    searchApi.includes('clientScope'));
-  check('suggest.js imports getClientScope',
-    suggestApi.includes('getClientScope'));
-  check('suggest.js passes clientScope',
-    suggestApi.includes('clientScope'));
-  check('behaviour.js passes clientId to click',
-    behaviourApi.includes('clientId:    clientId'));
+  check('clientHelper has getClientScope', clientHelper.includes('function getClientScope'));
+  check('search.js imports getClientScope',searchApi.includes('getClientScope'));
+  check('search.js passes clientScope',    searchApi.includes('clientScope'));
+  check('suggest.js imports getClientScope',suggestApi.includes('getClientScope'));
+  check('suggest.js passes clientScope',   suggestApi.includes('clientScope'));
+  check('behaviour.js passes clientId to click', behaviourApi.includes('clientId:    clientId'));
 
   // ── layer funnel validation ───────────────────────────
   console.log('\n▸ Layer funnel validation');
@@ -913,4 +871,13 @@ Promise.all([
   console.log(`Phase 4:   ${p4pass} / ${p4pass + p4fail} ${p4fail === 0 ? '✅' : '❌'}`);
   console.log(`Phase 5:   ${p5pass} / ${p5pass + p5fail} ${p5fail === 0 ? '✅' : '❌'}`);
   console.log(`Total:     ${totalPassed + p4pass + p5pass} / ${totalTests + p4pass + p4fail + p5pass + p5fail} ${p4fail + p5fail === 0 && totalTests === totalPassed ? '✅' : '⚠️'}`);
+
+  // ── exit with non-zero code if any tests failed ───────
+  // makes GitHub Actions CI/CD detect a broken deploy ✅
+  // set -e in the workflow script catches this exit code ✅
+  const allPassed = totalPassed === totalTests && p4fail === 0 && p5fail === 0;
+  if (!allPassed) {
+    console.error('\n❌ Tests failed — deployment should be rejected');
+    process.exit(1);
+  }
 });

@@ -1,0 +1,130 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# one deployment at a time ✅
+# queues new deploys rather than cancelling them ✅
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+        # matches node:22-alpine in Dockerfile ✅
+        # consistent behavior between CI and server ✅
+
+      - name: Verify secrets exist
+        run: |
+          MISSING=0
+          if [ -z "${{ secrets.SERVER_HOST }}" ]; then
+            echo "❌ SERVER_HOST secret not set"
+            MISSING=1
+          fi
+          if [ -z "${{ secrets.SERVER_USER }}" ]; then
+            echo "❌ SERVER_USER secret not set"
+            MISSING=1
+          fi
+          if [ -z "${{ secrets.SERVER_SSH_KEY }}" ]; then
+            echo "❌ SERVER_SSH_KEY secret not set"
+            MISSING=1
+          fi
+          if [ $MISSING -eq 1 ]; then
+            echo ""
+            echo "Add secrets at:"
+            echo "GitHub → Settings → Secrets → Actions"
+            exit 1
+          fi
+          echo "✅ All secrets present"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key:      ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+            cd ~/smart-search-v2
+
+            echo "→ Syncing to exact commit from GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+            # guarantees server exactly matches GitHub ✅
+            # no merge conflicts possible ✅
+            # no local drift ✅
+
+            echo "→ Building new image (server still serving)..."
+            docker compose build
+            # build fails here → old container keeps running ✅
+            # downtime has NOT started yet ✅
+
+            echo "→ Swapping containers..."
+            docker compose up -d
+            # recreates only changed containers ✅
+            # minimizes downtime vs explicit down + up ✅
+
+            echo "→ Polling /api/health/ready (max 2 minutes)..."
+            MAX_WAIT=120
+            WAITED=0
+            until curl -sf http://localhost:3000/api/health/ready > /dev/null; do
+              if [ $WAITED -ge $MAX_WAIT ]; then
+                echo "❌ Health check timed out after ${MAX_WAIT}s"
+                echo "Last health response:"
+                curl -s http://localhost:3000/api/health/deep || true
+                exit 1
+              fi
+              RESPONSE=$(curl -s http://localhost:3000/api/health/ready 2>/dev/null || echo '{}')
+              STATUS=$(echo "$RESPONSE" | python3 -c "
+import sys,json
+try:
+  d=json.load(sys.stdin)
+  print(d.get('status','no-response'))
+except:
+  print('no-response')
+" 2>/dev/null || echo 'no-response')
+              echo "   waiting... (${WAITED}s elapsed) status=${STATUS}"
+              sleep 2
+              WAITED=$((WAITED + 2))
+            done
+            echo "✅ Server is ready"
+
+            echo "→ Running smoke tests..."
+            node mastercheckup.js 2>/dev/null
+            # full output captured by GitHub ✅
+            # exits 1 if any test fails → deploy marked RED ✅
+
+            echo "→ Cleaning up old Docker images..."
+            docker image prune -f
+            # prevents disk filling up over many deploys ✅
+
+            echo "✅ Deployment complete"
+
+      - name: Notify success
+        if: success()
+        run: echo "✅ Deployed successfully to ${{ secrets.SERVER_HOST }}"
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed — manual rollback procedure:"
+          echo "  ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}"
+          echo "  cd ~/smart-search-v2"
+          echo "  git log --oneline -5"
+          echo "  git checkout <last-good-commit>"
+          echo "  docker compose up --build -d"
+          echo "  curl http://localhost:3000/api/health/ready"
