@@ -21,6 +21,11 @@ services:
       resources:
         limits:
           memory: 1g      # prevents Meili consuming all available RAM ✅
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # rotate after 10MB ✅
+        max-file: "5"     # keep last 5 files = max 50MB for Meili logs ✅
 
   smart-search:
     build:
@@ -47,6 +52,11 @@ services:
       resources:
         limits:
           memory: 512m    # prevents Node consuming all RAM if a memory leak develops ✅
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"   # rotate after 10MB ✅
+        max-file: "5"     # keep last 5 files = max 50MB for Node logs ✅
 
 volumes:
   meili_data:
