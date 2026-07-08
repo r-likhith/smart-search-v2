@@ -1,8 +1,33 @@
 const clients = require('./clients');
 
+// ─── RESOLVE CLIENT ID ────────────────────────────────────
+// Handles both direct clientId (198) and vendor_slug format
+// (izoleap_m_198, izoleap_m_198_products) ✅
+// Extracts trailing number from vendor_slug ✅
+
+function resolveClientId(clientId) {
+  if (!clientId) return null;
+  const id = String(clientId);
+
+  // direct match first ✅
+  if (clients[id]) return id;
+
+  // extract trailing number from vendor_slug ✅
+  // izoleap_m_198 → 198
+  // izoleap_m_198_products → 198
+  const match = id.match(/(\d+)(?:_products)?$/);
+  if (match) {
+    const extracted = match[1];
+    if (clients[extracted]) return extracted;
+  }
+
+  return null;
+}
+
 // get client config by clientId
 function getClient(clientId) {
-  return clients[String(clientId)] || null;
+  const resolved = resolveClientId(clientId);
+  return resolved ? clients[resolved] : null;
 }
 
 // get Meilisearch index for a clientId
@@ -40,6 +65,7 @@ function getUnsyncedClients() {
 }
 
 module.exports = {
+  resolveClientId,
   getClient,
   getClientIndex,
   getClientScope,
