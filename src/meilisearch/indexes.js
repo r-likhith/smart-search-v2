@@ -50,8 +50,8 @@ async function createIndexes() {
       typoTolerance: {
         enabled: true,
         minWordSizeForTypos: {
-          oneTypo: 4,
-          twoTypos: 8
+          oneTypo: 6,
+          twoTypos: 10
         }
       },
       pagination: {
