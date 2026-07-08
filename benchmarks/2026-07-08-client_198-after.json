@@ -1,0 +1,67 @@
+{
+  "clientId": "198",
+  "timestamp": "2026-07-08T12:10:08.916Z",
+  "tag": "after",
+  "recall": {
+    "passed": 10,
+    "total": 10
+  },
+  "precision": {
+    "passed": 0,
+    "total": 3
+  },
+  "edge": {
+    "passed": 2,
+    "total": 2
+  },
+  "catalog": {
+    "passed": 0,
+    "total": 0
+  },
+  "latencies": [
+    67,
+    41,
+    78,
+    35,
+    48,
+    23,
+    146,
+    22,
+    30,
+    30,
+    161,
+    104,
+    91,
+    28,
+    31
+  ],
+  "failures": [
+    {
+      "query": "saree",
+      "category": "precision",
+      "expected": "no results",
+      "got": "10 hits",
+      "corrected": null,
+      "note": "fashion term — should return 0 for electronics"
+    },
+    {
+      "query": "kurti",
+      "category": "precision",
+      "expected": "no results",
+      "got": "10 hits",
+      "corrected": null,
+      "note": null
+    },
+    {
+      "query": "dupatta",
+      "category": "precision",
+      "expected": "no results",
+      "got": "10 hits",
+      "corrected": null,
+      "note": null
+    }
+  ],
+  "avgLatency": 62,
+  "totalPassed": 12,
+  "totalTests": 15
+}
