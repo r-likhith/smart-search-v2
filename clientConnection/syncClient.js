@@ -9,7 +9,8 @@ const clients = require('../configVendors/clients');
 
 // ─── CONFIG ───────────────────────────────────────────────
 const CLIENT_ID  = process.env.SYNC_CLIENT_ID;
-const MEILI_HOST = 'http://localhost:7700';
+const MEILI_HOST       = process.env.MEILI_HOST || 'http://localhost:7700';
+const MEILI_MASTER_KEY = process.env.MEILI_MASTER_KEY;
 const BATCH_SIZE = 100;
 
 if (!CLIENT_ID) {
@@ -30,7 +31,7 @@ const ES_PASSWORD = process.env.ES_PASSWORD;
 const ES_INDEX    = clientConfig.esIndex;
 const MEILI_INDEX = clientConfig.meiliIndex;
 
-const meili = new MeiliSearch({ host: MEILI_HOST });
+const meili = new MeiliSearch({ host: MEILI_HOST, apiKey: MEILI_MASTER_KEY });
 
 // ─── KIBANA PROXY REQUEST ─────────────────────────────────
 
