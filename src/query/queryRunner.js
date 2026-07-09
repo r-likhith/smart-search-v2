@@ -19,6 +19,19 @@ const { logSearchEvent } = require('../../analytics/logger');
 const { parseIntent, hasFilters } = require('./intentParser');
 const features = require('../searchBanners/features');
 
+// ─── EDIT DISTANCE GATE ───────────────────────────────────
+// Centralized edit distance policy ✅
+// length ≤ 4 → 0 (no typo — too short, too risky)
+// length 5-7 → 1 (one edit allowed)
+// length 8+  → 2 (two edits allowed)
+// Applied to MAX edit distance across ALL changed words ✅
+function maxAllowedEditDistance(word) {
+  if (!word) return 0;
+  if (word.length <= 4) return 0;
+  if (word.length <= 7) return 1;
+  return 2;
+}
+
 // ─── CONFIG ───────────────────────────────────────────────
 const MIN_RESULTS_TO_LEARN   = 5;
 const MIN_IMPROVEMENT        = 5;
@@ -911,13 +924,41 @@ async function runSuggest(query, options = {}) {
   if (getSymSpellStatus().ready) {
     const symResult = symspellCorrectQuery(normalised);
     if (symResult && symResult.corrected !== normalised) {
-      const symResults = await getSuggestions(symResult.corrected, options);
-      if ((symResults.products?.length || 0) >= MIN_SUGGEST_RESULTS) {
-        return buildSuggestResponse(
-          query, normalised, symResult.corrected,
-          true, 'symspell', 0.85,
-          symResults
-        );
+
+      // gate 1: edit distance plausibility ✅
+      // use MAX distance across ALL changed words ✅
+      // avoids accepting corrections too far from original ✅
+      // "smrte"(5) → max 1 edit, "saree" is 2 edits → rejected ✅
+      const worstEdit = Math.max(
+        ...(symResult.changedWords || []).map(w => w.distance || 0)
+      );
+      const maxEdit = maxAllowedEditDistance(normalised);
+
+      if (worstEdit > maxEdit) {
+        console.log(`[S2-SymSpell] rejected "${symResult.corrected}" — edit distance ${worstEdit} > max ${maxEdit} for "${normalised}"`);
+      } else {
+        // gate 2: phonetic cross-check (observability only) ✅
+        // not a hard gate yet — log for future confidence tuning ✅
+        const phonResult     = phoneticCorrectQuery(normalised);
+        const phoneticAgrees = phonResult?.corrected === symResult.corrected;
+        if (!phoneticAgrees) {
+          console.log(`[S2-SymSpell] phonetic disagrees: "${normalised}" → symspell:"${symResult.corrected}" phonetic:"${phonResult?.corrected}"`);
+        }
+
+        const symResults  = await getSuggestions(symResult.corrected, options);
+        const symCount    = symResults.products?.length || 0;
+        const directCount = directResults.products?.length || 0;
+
+        // gate 3: must improve AND meet minimum ✅
+        if (symCount >= MIN_SUGGEST_RESULTS && symCount > directCount) {
+          return buildSuggestResponse(
+            query, normalised, symResult.corrected,
+            true, 'symspell', 0.85,
+            symResults
+          );
+        } else {
+          console.log(`[S2-SymSpell] rejected "${symResult.corrected}" — no improvement (${symCount} vs ${directCount} direct)`);
+        }
       }
     }
   }
