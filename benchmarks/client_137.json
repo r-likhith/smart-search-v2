@@ -1,0 +1,12 @@
+[
+  { "query": "biscit",   "expectedName": "biscuit",  "shouldHaveResults": true,
+    "note": "grocery typo — phonetic/symspell should correct" },
+  { "query": "choclate", "expectedName": "chocolate","shouldHaveResults": true,
+    "note": "grocery typo — symspell should correct" },
+  { "query": "bred",     "expectedName": "",         "shouldHaveResults": false,
+    "note": "ambiguous 4-char word — no auto-correction by design, add to learnedMap if logs justify" },
+  { "query": "sugr",     "expectedName": "sugar",    "shouldHaveResults": true,
+    "note": "vowel omission — phonetic should correct" },
+  { "query": "buttr",    "expectedName": "butter",   "shouldHaveResults": true,
+    "note": "vowel omission — phonetic should correct" }
+]

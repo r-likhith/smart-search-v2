@@ -307,7 +307,7 @@ async function run() {
   test('MAX_CORRECTIONS = 2',          content.symspell.includes('MAX_CORRECTIONS_PER_QUERY = 2'));
   test('HALLUCINATION_PATTERNS exist', content.corrector.includes('HALLUCINATION_PATTERNS'));
   test('category-diverse fallback',    content.searcher.includes('topCategories'));
-  test('shouldSkipOllama exists',      content.queryRunner.includes('shouldSkipOllama'));
+  // shouldSkipOllama removed — online Ollama not used, offline learner (Groq) used instead ✅
   test('safeSaveCorrection exists',    content.queryRunner.includes('safeSaveCorrection'));
   test('learnedmap timing tracked',    content.queryRunner.includes('timing.learnedmap'));
 

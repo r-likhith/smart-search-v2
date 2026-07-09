@@ -1,0 +1,5 @@
+[
+  { "query": "apple watche", "expectedName": "apple watch", "shouldHaveResults": true },
+  { "query": "samsng tab",   "expectedName": "samsung",     "shouldHaveResults": true },
+  { "query": "airpods",      "expectedName": "airpod",      "shouldHaveResults": true }
+]
