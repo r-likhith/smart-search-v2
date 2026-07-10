@@ -40,3 +40,6 @@ data.ms/
 backups/
 config/apiKeys.json
 config/apiKeys.json.tmp
+benchmarks/*-before.json
+benchmarks/*-after.json
+benchmarks/2026-*.json

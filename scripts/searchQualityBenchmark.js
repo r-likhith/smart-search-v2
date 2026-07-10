@@ -113,6 +113,9 @@ async function run() {
   };
 
   // ── run core tests ────────────────────────────────────
+  // note: recall tests are electronics-specific ✅
+  // they correctly fail for grocery/fashion clients ✅
+  // precision tests apply to ALL clients ✅
   console.log('▸ Core tests (dataset-independent)\n');
 
   for (const t of coreTests) {
