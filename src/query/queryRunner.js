@@ -14,6 +14,7 @@ const {
 } = require('../learned/learnedMap');
 const suggestMapModule = require('../learned/suggestMap');
 const { correctQuery: symspellCorrectQuery, getStatus: getSymSpellStatus } = require('../spellcheck/symspell');
+const { validateCorrection } = require('../learned/correctionValidator');
 const { correctQuery: phoneticCorrectQuery, getStatus: getPhoneticStatus } = require('../spellcheck/phonetic');
 const { logSearchEvent } = require('../../analytics/logger');
 const { parseIntent, hasFilters } = require('./intentParser');
@@ -41,16 +42,56 @@ const MIN_SUGGEST_RESULTS    = 3;   // threshold for suggest repair ✅
 
 // ─── SAFE SAVE ────────────────────────────────────────────
 
-function safeSaveCorrection(query, corrected, source, hitCount) {
+// ─── LEGACY ADAPTER ──────────────────────────────────────
+// Existing callers use (query, corrected, source, hitCount) ✅
+// Routes through safeSaveCorrection (validator gate) ✅
+// TODO: migrate callers to safeSaveCorrection directly ✅
+function safeSaveCorrectionLegacy(query, corrected, source, hitCount = 0) {
+  return safeSaveCorrection(
+    { original: query, correction: corrected, source },
+    { hitCount, resultsAfter: hitCount }
+  );
+}
+
+
+// ─── PERSIST CORRECTION ──────────────────────────────────
+// Single write gate for learnedMap ✅
+// All correction saves pass through here ✅
+// candidate: { original, correction, source }
+// evidence:  { resultsBefore, resultsAfter, hitCount, clicked, repeated, phoneticAgreement }
+// returns:   { decision, score, signals, persisted, ... }
+function safeSaveCorrection(candidate, evidence = {}) {
   try {
-    const chainCheck = applyCorrection(corrected);
+    // chain check ✅
+    const chainCheck = applyCorrection(candidate.correction);
     if (chainCheck.corrected) {
-      console.log(`[SafeSave] Chain detected — skipped: "${corrected}" → "${chainCheck.query}"`);
-      return;
+      console.log(`[SafeSave] Chain detected — skipped: "${candidate.correction}" → "${chainCheck.query}"`);
+      return { decision: 'reject', score: 0, persisted: false,
+               signals: [{ name: 'chain_detection', value: true }],
+               candidate };
     }
-    saveCorrection(query, corrected, source, hitCount);
+
+    // validator gate ✅
+    const validation = validateCorrection(candidate, evidence);
+
+    if (validation.decision !== 'save') {
+      console.log(`[SafeSave] ${validation.decision} "${candidate.original}"→"${candidate.correction}" score:${validation.score}`);
+      return { ...validation, persisted: false };
+    }
+
+    // persist ✅
+    console.log(`[SafeSave] Saving "${candidate.original}"→"${candidate.correction}" score:${validation.score} source:${candidate.source}`);
+    saveCorrection(
+      candidate.original,
+      candidate.correction,
+      candidate.source,
+      evidence.hitCount ?? 0
+    );
+    return { ...validation, persisted: true };
+
   } catch (e) {
-    console.error('saveCorrection error:', e.message);
+    console.error('[SafeSave] Error:', e.message);
+    return { decision: 'reject', score: 0, persisted: false, reason: e.message, candidate };
   }
 }
 
@@ -193,7 +234,7 @@ async function applyIntentIfNeeded(intent, query, normalised, options, currentRe
         analytics.intent.filtersApplied = true;
         analytics.intent.resultsAfter   = phonFilteredResults.totalHits;
         analytics.correctionMode        = 'full';
-        safeSaveCorrection(cleanQuery, phonClean, 'phonetic+intent', phonFilteredResults.hits.length);
+        safeSaveCorrectionLegacy(cleanQuery, phonClean, 'phonetic+intent', phonFilteredResults.hits.length);
         return {
           originalQuery:        query,
           normalisedQuery:      normalised,
@@ -355,7 +396,7 @@ async function runSearch(query, options = {}) {
       results.hits.length >= MIN_RESULTS_TO_LEARN &&
       results.totalHits >= originalResults.totalHits + MIN_IMPROVEMENT
     ) {
-      safeSaveCorrection(query, searchQuery, correction.source || 'manual', results.hits.length);
+      safeSaveCorrectionLegacy(query, searchQuery, correction.source || 'manual', results.hits.length);
     }
 
     analytics.learnedMap.outcome      = 'accepted';
@@ -455,7 +496,7 @@ async function runSearch(query, options = {}) {
         abbResults.hits.length >= MIN_RESULTS_TO_LEARN &&
         abbResults.totalHits > results.totalHits
       ) {
-        safeSaveCorrection(query, abbCorrection.query, abbCorrection.source || 'manual', abbResults.hits.length);
+        safeSaveCorrectionLegacy(query, abbCorrection.query, abbCorrection.source || 'manual', abbResults.hits.length);
         analytics.searchStage     = 'learnedmap';
         analytics.correctionDepth = 1;
         analytics.correctionMode  = 'full';
@@ -668,7 +709,7 @@ async function trySymSpellCorrection(query, normalised, options, startTime, orig
       improvement: correctedResults.totalHits - (originalResults?.totalHits || 0)
     };
 
-    safeSaveCorrection(query, corrected, 'symspell', correctedResults.hits.length);
+    safeSaveCorrectionLegacy(query, corrected, 'symspell', correctedResults.hits.length);
 
     const correctedIntent = parseIntent(corrected);
     const activeIntent    = hasFilters(correctedIntent) ? correctedIntent : intent;
@@ -803,7 +844,7 @@ async function tryPhoneticCorrection(query, normalised, options, startTime, orig
     };
 
     console.log(`[Phonetic] Accepted: "${query}" → "${corrected}" (${correctedResults.totalHits} results)`);
-    safeSaveCorrection(query, corrected, 'phonetic', correctedResults.hits.length);
+    safeSaveCorrectionLegacy(query, corrected, 'phonetic', correctedResults.hits.length);
 
     const correctedIntent = parseIntent(corrected);
     const activeIntent    = hasFilters(correctedIntent) ? correctedIntent : intent;
