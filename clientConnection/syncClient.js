@@ -33,23 +33,59 @@ const MEILI_INDEX = clientConfig.meiliIndex;
 
 const meili = new MeiliSearch({ host: MEILI_HOST, apiKey: MEILI_MASTER_KEY });
 
-// ─── KIBANA PROXY REQUEST ─────────────────────────────────
+// ─── ES REQUEST (direct or Kibana proxy) ───────────────────
+
+// async function esRequest(method, path, body = null) {
+//   const baseUrl  = ES_NODE.replace(/\/$/, '');
+//   const proxyPath = '/api/console/proxy?path=' + encodeURIComponent(path) + '&method=' + method;
+//   const fullUrl  = new URL(baseUrl + proxyPath);
+
+//   const options = {
+//     hostname: fullUrl.hostname,
+//     port:     fullUrl.port || (fullUrl.protocol === 'https:' ? 443 : 80),
+//     path:     fullUrl.pathname + fullUrl.search,
+//     method:   'POST',
+//     headers: {
+//       'Content-Type':  'application/json',
+//       'kbn-xsrf':      'true',
+//       'Authorization': 'Basic ' + Buffer.from(ES_USERNAME + ':' + ES_PASSWORD).toString('base64')
+//     },
+//     rejectUnauthorized: false
+//   };
+
+// Direct ES (port 9217) or Kibana proxy (port 5617) ✅
+const IS_KIBANA_PROXY = ES_NODE && ES_NODE.includes('5617');
 
 async function esRequest(method, path, body = null) {
-  const baseUrl  = ES_NODE.replace(/\/$/, '');
-  const proxyPath = '/api/console/proxy?path=' + encodeURIComponent(path) + '&method=' + method;
-  const fullUrl  = new URL(baseUrl + proxyPath);
+  const baseUrl = ES_NODE.replace(/\/$/, '');
+  let fullUrl, reqMethod, reqHeaders;
+
+  if (IS_KIBANA_PROXY) {
+    // Kibana proxy path ✅
+    const proxyPath = '/api/console/proxy?path=' + encodeURIComponent(path) + '&method=' + method;
+    fullUrl    = new URL(baseUrl + proxyPath);
+    reqMethod  = 'POST';
+    reqHeaders = {
+      'Content-Type':  'application/json',
+      'kbn-xsrf':      'true',
+      'Authorization': 'Basic ' + Buffer.from(ES_USERNAME + ':' + ES_PASSWORD).toString('base64')
+    };
+  } else {
+    // Direct ES access ✅
+    fullUrl    = new URL(baseUrl + path);
+    reqMethod  = method;
+    reqHeaders = {
+      'Content-Type':  'application/json',
+      'Authorization': 'Basic ' + Buffer.from(ES_USERNAME + ':' + ES_PASSWORD).toString('base64')
+    };
+  }
 
   const options = {
     hostname: fullUrl.hostname,
     port:     fullUrl.port || (fullUrl.protocol === 'https:' ? 443 : 80),
     path:     fullUrl.pathname + fullUrl.search,
-    method:   'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'kbn-xsrf':      'true',
-      'Authorization': 'Basic ' + Buffer.from(ES_USERNAME + ':' + ES_PASSWORD).toString('base64')
-    },
+    method:   reqMethod,
+    headers:  reqHeaders,
     rejectUnauthorized: false
   };
 
