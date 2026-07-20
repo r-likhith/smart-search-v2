@@ -6,6 +6,7 @@ const { successResponse, errorResponse } = require('../utils/response');
 const { isValidClient, getClientIndex, getClientScope } = require('../../configVendors/clientHelper');
 
 router.get('/', async (req, res, next) => {
+  console.log('[Suggest] GET hit:', req.query); // temp debug ✅
   // clientId from query param (GET request) OR from API key ✅
   const { q, catalogue, clientId: queryClientId } = req.query;
 

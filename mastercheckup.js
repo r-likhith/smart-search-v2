@@ -334,6 +334,46 @@ async function run() {
   test('deltaSync has PIT pagination',     deltaSyncSrc?.includes('openPit')                   || false);
   test('deltaSync has retry logic',        deltaSyncSrc?.includes('withRetry')                 || false);
 
+
+  // ── SECTION 13: DEDUPLICATION LOGIC ──────────────────
+  console.log('\n▸ SECTION 13: DEDUPLICATION LOGIC');
+
+  const { deduplicateCategories } = require('./src/meilisearch/deduplicateCategories');
+
+  // test 1: catalogue preferred over category ✅
+  const dedupResult = deduplicateCategories([
+    { type: 'catalogue', value: 'iPad, Tablets & Laptops', productCount: 244 },
+    { type: 'category',  value: 'iPad, Tablets & Laptops', productCount: 244 },
+    { type: 'brand',     value: 'APPLE',                   productCount: 138 }
+  ]);
+  test('dedup: removes category when catalogue has same value', dedupResult.length === 2);
+  test('dedup: catalogue preferred over category',              dedupResult[0].type === 'catalogue');
+  test('dedup: brand preserved after dedup',                    dedupResult[1].value === 'APPLE');
+
+  // test 2: case insensitive ✅
+  const dedupCaseResult = deduplicateCategories([
+    { type: 'catalogue', value: 'Smart Wearables', productCount: 100 },
+    { type: 'category',  value: 'smart wearables', productCount: 100 },
+  ]);
+  test('dedup: case insensitive deduplication', dedupCaseResult.length === 1);
+
+  // test 3: whitespace normalization ✅
+  const dedupWhitespace = deduplicateCategories([
+    { type: 'catalogue', value: 'Laptop ',  productCount: 100 },
+    { type: 'category',  value: ' laptop',  productCount: 100 },
+  ]);
+  test('dedup: whitespace normalization', dedupWhitespace.length === 1);
+
+  // test 4: null/undefined safety ✅
+  let dedupSafe = true;
+  try {
+    deduplicateCategories([
+      { type: 'catalogue', value: null },
+      { type: 'category',  value: undefined }
+    ]);
+  } catch (e) { dedupSafe = false; }
+  test('dedup: null/undefined value handled safely', dedupSafe);
+
   // ── FINAL SUMMARY ──────────────────────────────────────
   console.log('\n╔════════════════════════════════════════╗');
   console.log('║           FINAL SUMMARY                ║');
