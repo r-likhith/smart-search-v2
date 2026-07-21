@@ -74,6 +74,7 @@ const healthRoute    = require('./src/api/health');
 const behaviourRoute = require('./src/api/behaviour');
 
 const app = express();
+app.set('trust proxy', 1); // trust first proxy (ngrok/cloud LB) for rate limiting ✅
 
 // ─── MIDDLEWARE ───────────────────────────────────────────
 
