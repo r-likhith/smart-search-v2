@@ -129,7 +129,7 @@ async function loadSuggestions(q) {
   try {
     const r = await fetch(
       `${API}/api/suggest?q=${encodeURIComponent(q)}&clientId=${CLIENT_ID}`,
-      { headers: { 'x-api-key': API_KEY } }
+      { headers: { 'x-api-key': API_KEY, 'ngrok-skip-browser-warning': 'true' } }
     );
     const data   = await r.json();
     const suggs  = data.data?.suggestions || {};
@@ -216,7 +216,7 @@ async function doSearch() {
   try {
     const r = await fetch(`${API}/api/search`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'ngrok-skip-browser-warning': 'true' },
       body:    JSON.stringify({ query: q, clientId: CLIENT_ID })
     });
     const data = await r.json();
@@ -339,7 +339,7 @@ async function recordClick(productId, productName, category) {
   try {
     await fetch(`${API}/api/behaviour/click`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'ngrok-skip-browser-warning': 'true' },
       body:    JSON.stringify({
         query:               lastQuery,
         productId:           productId,
