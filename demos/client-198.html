@@ -176,16 +176,26 @@ async function loadSuggestions(q) {
         </span>
       </div>`).join('');
 
-    // ── correction indicator ✅
-    // show only when query was corrected ✅
-    // "Suggestions for laptop" not "Did you mean" ✅
+    // ── correction banner ✅
+    // High confidence (≥0.9): "Showing results for 'X'" ✅
+    // Low confidence (<0.9):  "Did you mean 'X'?" ✅
     const correctionApplied = data.data?.correction?.applied || false;
     const correctedQuery    = data.data?.correction?.correctedQuery || null;
+    const confidence        = data.data?.correction?.confidence || 0;
+    const HIGH_CONFIDENCE   = 0.9;
     let correctionBar = '';
     if (correctionApplied && correctedQuery) {
-      correctionBar = '<div style="padding:6px 16px;font-size:11px;color:#999;border-bottom:0.5px solid #f0f0f0">' +
-        'Suggestions for <strong style="color:#1a1a1a">' + correctedQuery + '</strong>' +
-      '</div>';
+      const isHighConf = confidence >= HIGH_CONFIDENCE;
+      const label = isHighConf ? 'Showing results for' : 'Did you mean';
+      const color = isHighConf ? '#1a5bb5' : '#e67e00';
+      const bg    = isHighConf ? '#e8f0fe' : '#fff8e8';
+      correctionBar = `<div style="padding:8px 16px;font-size:12px;background:${bg};border-bottom:0.5px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+        onclick="acceptCorrection('${correctedQuery.replace(/'/g, "\\'")}')">
+        <span style="color:${color}">
+          ${label} <strong style="color:#1a1a1a">"${correctedQuery}"</strong>
+        </span>
+        <span style="font-size:10px;color:#999">click to accept</span>
+      </div>`;
     }
 
     sugsEl.innerHTML = correctionBar + html;
@@ -193,6 +203,12 @@ async function loadSuggestions(q) {
   } catch(e) {
     sugsEl.style.display = 'none';
   }
+}
+
+function acceptCorrection(corrected) {
+  qEl.value = corrected;
+  sugsEl.style.display = 'none';
+  doSearch();
 }
 
 function pickSuggestion(name) {
