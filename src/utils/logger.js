@@ -17,11 +17,13 @@ function logQuery(data) {
 
     const entry = JSON.stringify({
       ts:         new Date().toISOString(),
+      event:      data.event      || 'smart_search',
       requestId:  data.requestId  || null,
       source:     data.source     || 'search',
       // ── client tracking ──────────────────────────────
-      clientId:   data.clientId   || null,
-      clientName: data.clientName || null,
+      clientId:          data.clientId          || null,
+      clientName:        data.clientName        || null,
+      smartSearchEnabled: data.smartSearchEnabled ?? true,
       // ── query ────────────────────────────────────────
       query:       data.query,
       queryLength: data.query ? data.query.length : 0,
@@ -47,6 +49,7 @@ function logQuery(data) {
       noResults:   results === 0,
       isBadQuery:  results === 0 && !isFallback,
       isFallback,
+      fallbackReason: data.fallbackReason || null,
       // ── performance ──────────────────────────────────
       processingTime,
       latencyBucket:
@@ -84,43 +87,3 @@ function logQuery(data) {
 
 module.exports = { logQuery };
 
-
-
-
-
-
-// const fs = require('fs');
-// const path = require('path');
-
-// const LOG_FILE = path.join(__dirname, '../../logs/queries.log');
-
-// // safe directory creation
-// fs.mkdirSync(path.join(__dirname, '../../logs'), { recursive: true });
-
-// function logQuery(data) {
-//   try {
-//     const entry = JSON.stringify({
-//       ts: new Date().toISOString(),
-//       requestId: data.requestId || null,
-//       query: data.query,
-//       normalised: data.normalised,
-//       correctedQuery: data.correctedQuery || null,
-//       appliedCorrection: data.appliedCorrection || false,
-//       results: data.results || 0,
-//       noResults: data.results === 0,
-//       isBadQuery: data.results === 0,
-//       isFallback: data.isFallback || false,
-//       processingTime: data.processingTime || 0
-//     });
-
-//     // async — non blocking
-//     fs.appendFile(LOG_FILE, entry + '\n', err => {
-//       if (err) console.error('Logger error:', err.message);
-//     });
-
-//   } catch (err) {
-//     console.error('Logger error:', err.message);
-//   }
-// }
-
-// module.exports = { logQuery };
