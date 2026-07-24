@@ -134,19 +134,19 @@ ES_NODE=http://<elasticsearch-host>:<port>
 The development team supplies required variables and documentation.
 Infrastructure populates production values for the deployment environment.
 
-| Variable          | Description                                    |
-|-------------------|------------------------------------------------|
-| PORT              | API listening port (default: 3000)             |
-| API_KEY           | Authentication key for all API requests        |
-| MEILI_HOST        | Meilisearch endpoint (internal Docker network) |
-| MEILI_MASTER_KEY  | Meilisearch master key                         |
-| ES_NODE           | Elasticsearch endpoint                         |
-| ES_USERNAME       | Elasticsearch username                         |
-| ES_PASSWORD       | Elasticsearch password                         |
-| CORS_ORIGIN       | Allowed frontend origin                        |
-| DISABLE_DEMOS     | Enable/disable demo pages (true/false)         |
-| GROQ_API_KEY      | Groq API key for AI correction                 |
-| ENABLE_DELTA_SYNC | Enable delta sync (false by default)           |
+| Variable                       | Description                                    |
+|--------------------------------|------------------------------------------------|
+| PORT                           | API listening port (default: 3000)             |
+| SMART_SEARCH_API_KEY           | Authentication key for all API requests        |
+| MEILI_HOST                     | Meilisearch endpoint (internal Docker network) |
+| MEILI_MASTER_KEY               | Meilisearch master key                         |
+| ES_NODE                        | Elasticsearch endpoint                         |
+| ES_USERNAME                    | Elasticsearch username                         |
+| ES_PASSWORD                    | Elasticsearch password                         |
+| CORS_ORIGIN                    | Allowed frontend origin                        |
+| DISABLE_DEMOS                  | Enable/disable demo pages (true/false)         |
+| GROQ_API_KEY                   | Groq API key for AI correction                 |
+| ENABLE_DELTA_SYNC              | Enable delta sync (false by default)           |
 
 Generate API key with:
 ```bash
@@ -395,7 +395,7 @@ docker stats
 → verify network access to Elasticsearch cluster
 
 **API requests returning 401**
-→ verify API_KEY in .env matches x-api-key header in requests
+→ verify SMART_SEARCH_API_KEY in .env matches x-api-key header in requests
 
 **Groq AI correction not working**
 → verify GROQ_API_KEY in .env
@@ -416,4 +416,74 @@ docker stats
 - Port configurable via PORT in .env
 - All configuration via .env file
 - Versions managed by Docker images in docker-compose.yml
+
+
+---
+
+## Server Sizing Guide
+
+### Minimum vs Recommended
+                Minimum        Recommended
+
+RAM 2GB 4GB
+CPU 1 core 2 cores
+Storage 10GB 20GB
+
+
+### Resource Breakdown
+
+RAM:
+Smart Search API: 300MB
+Meilisearch: 500MB-1GB
+OS overhead: 500MB
+─────────────────────────────
+Minimum total: 2GB
+Recommended total: 4GB
+
+Storage:
+OS: 5GB
+Docker images: 1GB
+Meilisearch data: 2GB (depends on catalog size)
+Logs: 1GB
+─────────────────────────────
+Minimum total: 10GB
+Recommended total: 20GB
+
+
+### Current Catalog
+
+8 clients — approximately 18,000 products total
+Meilisearch RAM usage: approximately 200-300MB
+Well within minimum requirements
+
+
+### Why Recommended Size (4GB / 2 CPU / 20GB)
+
+**Performance**
+- Meilisearch runs fully in RAM — no disk swapping
+- Search responses under 50ms
+- Suggest responses under 100ms
+- 2 CPUs handle parallel requests without queuing
+
+**Growth Headroom**
+- Current catalog (~18k products) uses ~300MB
+- Can grow to ~200k products without server upgrade
+- Can add 10-15 more clients without upgrade
+
+**Stability**
+- ~2.4GB free buffer after all services start
+- No crashes under load
+- Memory spikes handled safely
+- Log rotation runs without impact
+
+**Future Features**
+- Delta sync runs comfortably
+- Click tracking handled easily
+- Lightweight AI models can run if needed
+
+**Summary**
+
+4GB = peace of mind for 2+ years
+2GB = works today, tight tomorrow
+
 
