@@ -1,7 +1,7 @@
 # dependencies
 node_modules/
 
-# environment — never commit real values ✅
+# environment — never commit to public GitHub ✅
 .env
 
 # Meilisearch data
