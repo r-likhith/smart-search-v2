@@ -6,5 +6,5 @@ module.exports = {
     apiKey: process.env.MEILI_MASTER_KEY
   },
   port: process.env.PORT || 6000,
-  apiKey: process.env.API_KEY
+  apiKey: process.env.SMART_SEARCH_API_KEY
 };

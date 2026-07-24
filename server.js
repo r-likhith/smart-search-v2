@@ -30,7 +30,7 @@ const { loadKeys, validateKey, persistKeys, getAllKeys } = require('./src/auth/a
 const REQUIRED_ENV = [
   'MEILI_HOST',
   'MEILI_MASTER_KEY',
-  'API_KEY',
+  'SMART_SEARCH_API_KEY',
   'PORT',
   'GROQ_API_KEY'
 ];
