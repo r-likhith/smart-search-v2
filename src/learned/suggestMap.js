@@ -45,7 +45,16 @@ function getCompletion(prefix) {
     const key   = normalise(prefix);
     const entry = suggestMap[key];
     if (!entry) return null;
-    return entry.completion || null;
+    // respect enabled flag — disabled entries invisible to S3 ✅
+    if (entry.enabled === false) return null;
+    // validate completion is a non-empty string ✅
+    const completion = entry.completion;
+    if (typeof completion !== 'string' || completion.length === 0) return null;
+    // future: confidence gate (Phase 3) ✅
+    // if (entry.confidence < MIN_CONFIDENCE) return null;
+    // future: client-specific gate (Phase 3) ✅
+    // if (entry.clientId && entry.clientId !== clientId) return null;
+    return completion;
   } catch {
     return null;
   }
