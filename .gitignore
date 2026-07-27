@@ -1,14 +1,12 @@
 # dependencies
 node_modules/
 
-# environment — never commit to public GitHub ✅
-.env
-
-# Meilisearch data
+# Meilisearch data — generated at runtime
 data.ms/
-dumps/
+dumps/*
+!dumps/.gitkeep
 
-# logs — generated at runtime ✅
+# logs — generated at runtime
 logs/
 multiTenantLogs/
 
@@ -19,27 +17,20 @@ multiTenantLogs/
 *.xlsx
 *.csv
 
-# old fix scripts (keep folder, ignore contents in git if needed)
-# remove this line if you want oldFixFiles tracked ✅
-# oldFixFiles/
+# old fix scripts
 oldFixFiles/
 
-# runtime data — changes constantly ✅
-learned/*.json
-learned/*.backup.json
+# learned — operational state (not committed)
+learned/clicks.json
+learned/buildState.json
+learned/reverseIndex.json
+learned/reverseIndex.backup.json
 
-# keep directory structure ✅
-!learned/.gitkeep
+# sync state — generated at runtime
+sync_state/*
+!sync_state/.gitkeep
 
-# sync state runtime ✅
-sync_state/
-data.ms/
-
-# seed files — committed intentionally ✅
-!learned/*.seed.json
-backups/
-config/apiKeys.json
+# temp files
 config/apiKeys.json.tmp
-benchmarks/*-before.json
-benchmarks/*-after.json
-benchmarks/2026-*.json
+backups/
+benchmarks/*.json
